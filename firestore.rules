@@ -1,0 +1,21 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 사용자는 자신의 노드만 읽고 쓸 수 있음
+    match /users/{userId}/nodes/{nodeId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 사용량 데이터는 본인 것만 읽을 수 있음 (쓰기는 Functions에서만)
+    match /usage/{usageId} {
+      allow read: if request.auth != null &&
+                     request.auth.uid == usageId.split('_')[0];
+      allow write: if false; // Functions에서만 쓰기 가능
+    }
+
+    // 기타 모든 문서는 인증된 사용자만 접근 가능
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

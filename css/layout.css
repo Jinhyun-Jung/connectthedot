@@ -1,0 +1,369 @@
+/* ========================================
+   STAR BACKGROUND & CANVAS
+======================================== */
+#starBackground {
+    position: fixed;
+    inset: 0;
+    background: var(--primary-bg);
+    z-index: 0;
+    overflow: hidden;
+}
+
+.star {
+    position: fixed;
+    background: var(--primary-text);
+    border-radius: var(--radius-full);
+    pointer-events: none;
+    z-index: 1;
+    animation: twinkle var(--twinkle-duration) ease-in-out infinite;
+    will-change: opacity;
+}
+
+@keyframes twinkle {
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 1; }
+}
+
+#canvas {
+    position: absolute;
+    width: var(--canvas-size);
+    height: var(--canvas-size);
+    overflow: visible;
+    transform-origin: 0 0;
+    pointer-events: all;
+    cursor: grab;
+    z-index: 2;
+}
+
+#canvas.dragging {
+    cursor: grabbing;
+}
+
+#canvas svg {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* ========================================
+   CANVAS TAB SYSTEM
+======================================== */
+.canvas-tab-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    z-index: var(--z-index-dropdown);
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.tab-list {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+    overflow-x: auto;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+}
+
+.tab-list::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+}
+
+.tab-item {
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px 8px 0 0;
+    padding: 8px 12px;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s ease;
+    min-width: 120px;
+    max-width: 200px;
+    position: relative;
+    white-space: nowrap;
+}
+
+.tab-item:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.tab-item.active {
+    background: white;
+    border-bottom: 1px solid white;
+    margin-bottom: -1px;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tab-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 14px;
+    font-weight: 500;
+    color: #333333;
+    padding: 2px 4px;
+    border-radius: 4px;
+    cursor: text;
+}
+
+.tab-name.editing {
+    background: white;
+    border: 1px solid #007bff;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.tab-close {
+    background: none;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    font-size: 16px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 8px;
+    transition: all 0.2s ease;
+    opacity: 0;
+}
+
+.tab-item:hover .tab-close {
+    opacity: 1;
+}
+
+.tab-close:hover {
+    background: rgba(255, 0, 0, 0.1);
+    color: #ff0000;
+}
+
+.tab-add-btn {
+    background: rgba(0, 123, 255, 0.1);
+    border: 1px solid rgba(0, 123, 255, 0.3);
+    color: #007bff;
+    cursor: pointer;
+    font-size: 20px;
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    margin-left: 12px;
+}
+
+.tab-add-btn:hover {
+    background: rgba(0, 123, 255, 0.2);
+    transform: scale(1.05);
+}
+
+/* ========================================
+   PANEL SYSTEM
+======================================== */
+.panel {
+    position: fixed;
+    width: var(--panel-width);
+    background: white;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    z-index: var(--z-index-dropdown);
+    padding: var(--space-xl);
+    box-sizing: border-box;
+    cursor: default;
+    max-height: 80vh;
+    overflow-y: auto;
+    transition: 
+        transform var(--transition-slow),
+        opacity var(--transition-slow);
+}
+
+.panel.hidden {
+    transform: translateY(-20px);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.folder-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 0;
+    width: var(--panel-width);
+    height: 100vh;
+    max-height: 100vh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    z-index: 1000;
+    box-shadow: 2px 0 16px rgba(0, 0, 0, 0.15);
+    color: #000000;
+    display: flex;
+    flex-direction: column;
+    transition:
+        transform var(--transition-slow),
+        opacity var(--transition-slow);
+}
+
+.folder-container.hidden {
+    display: flex;
+    transform: translateX(-100%);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.folder-container .folder-list {
+    flex: 1 1 auto;
+    max-height: none;
+}
+
+.calendar-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--calendar-width);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    overflow: hidden;
+    z-index: 1000;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    color: #000000;
+}
+
+/* 드래그 가능한 헤더 스타일 개선 */
+.folder-header {
+    cursor: move;
+    user-select: none;
+    padding: 8px 12px;
+    background: transparent;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* 폴더뷰 타이틀 */
+.folder-view-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.folder-view-title:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.calendar-header {
+    cursor: move;
+    user-select: none;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    font-weight: 500;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.calendar-header:hover {
+    background: linear-gradient(135deg, #5a6fd8, #6a42a0);
+}
+
+.folder-title {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* 헤더 버튼들 */
+.calendar-header button {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.calendar-header button:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.calendar-close-btn {
+    background: rgba(255, 255, 255, 0.2) !important;
+    border: none;
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.folder-close-btn {
+    background: rgba(220, 53, 69, 0.7) !important;
+    border: none;
+    color: #ffffff;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.calendar-close-btn:hover {
+    background: rgba(255, 255, 255, 0.3) !important;
+    transform: scale(1.1);
+}
+
+.folder-close-btn:hover {
+    background: rgba(220, 53, 69, 0.9) !important;
+    transform: scale(1.1);
+}
+
+/* Week container and day styles */
+.week-container {
+    pointer-events: all;
+}
+
+.day-column {
+    pointer-events: all;
+}
+
+.day-label {
+    pointer-events: all;
+    margin-bottom: var(--space-xl);
+} 

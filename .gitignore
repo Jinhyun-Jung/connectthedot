@@ -1,0 +1,51 @@
+# ===== 시크릿/환경변수 =====
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+serviceAccount*.json
+*credential*.json
+
+# ===== 로그 =====
+*.log
+
+# ===== 파이썬 =====
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+data_cache/
+
+# ===== 노드 =====
+node_modules/
+
+# ===== Firebase/캐시 =====
+.firebase/
+.cache/
+
+# ===== 보관/백업/테스트 (GitHub 제외, 로컬 유지) =====
+_archive/
+backup/
+backups/
+testsprite_tests/
+tmpclaude-*/
+_test/
+.test/
+
+# ===== 대용량 미디어 (GitHub 제외, 로컬 유지) =====
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+*.mp3
+*.wav
+*.zip
+*.psd
+*.ai
+
+# ===== OS =====
+.DS_Store
+Thumbs.db

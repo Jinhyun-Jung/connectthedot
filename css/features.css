@@ -1,0 +1,908 @@
+/* ========================================
+   FOLDER SYSTEM
+======================================== */
+.folder-input-container {
+    margin-bottom: var(--space-lg);
+    border: none;
+    padding: 0;
+    background: none;
+}
+
+.folder-path {
+    margin-bottom: var(--space-sm);
+    color: var(--primary-text);
+    font-size: var(--text-xs);
+}
+
+.folder-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: var(--space-md);
+    background-color: var(--folder-bg);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    max-height: 280px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* 현재 경로 브레드크럼 */
+.folder-breadcrumb {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
+.breadcrumb-item {
+    display: inline-flex;
+    align-items: center;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 13px;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.breadcrumb-item:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.breadcrumb-item.current {
+    color: white;
+    font-weight: 600;
+}
+
+.breadcrumb-item .folder-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    flex-shrink: 0;
+}
+
+.breadcrumb-separator {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+    margin: 0 2px;
+}
+
+/* 폴더 선택 그리드 */
+.folder-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.folder-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 20px;
+    font-size: 12px;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.folder-chip:hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+    transform: translateY(-1px);
+}
+
+.folder-chip.selected {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border-color: transparent;
+    font-weight: 500;
+}
+
+.folder-chip .folder-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    flex-shrink: 0;
+}
+
+.folder-chip.selected .folder-dot {
+    border: 1.5px solid rgba(255, 255, 255, 0.8);
+}
+
+/* 새 폴더 버튼 스타일 */
+.folder-buttons .new-folder-btn {
+    width: 100%;
+    margin-top: 4px;
+    padding: 10px 16px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.folder-buttons .new-folder-btn:hover {
+    background: linear-gradient(135deg, #5a6fd8, #6a42a0);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.folder-buttons::-webkit-scrollbar {
+    width: var(--scrollbar-width);
+}
+
+.folder-buttons::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+    border-radius: var(--radius-sm);
+}
+
+.folder-buttons::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: var(--radius-sm);
+}
+
+.folder-buttons::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+}
+
+.folder-button {
+    display: flex;
+    align-items: center;
+    padding: var(--space-xs) var(--space-sm);
+    background-color: var(--hover-bg);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+    cursor: pointer;
+    transition: all var(--transition-base);
+    white-space: nowrap;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: var(--font-family-sans);
+}
+
+.folder-button:hover {
+    background-color: var(--active-bg);
+    transform: translateY(-1px);
+}
+
+.folder-button.selected {
+    background-color: var(--accent-color);
+    color: var(--primary-text);
+}
+
+.folder-dot {
+    display: inline-block;
+    width: var(--scrollbar-width);
+    height: var(--scrollbar-width);
+    border-radius: var(--radius-full);
+    margin-right: var(--space-sm);
+    flex-shrink: 0;
+}
+
+#newFolderInputContainer {
+    margin-top: var(--space-md);
+    padding: var(--space-md);
+    background-color: var(--folder-bg);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    display: none;
+}
+
+#newFolderInput {
+    width: 100%;
+    padding: var(--space-sm);
+    background-color: var(--folder-input-bg);
+    border: 1px solid var(--folder-input-border);
+    border-radius: var(--radius-sm);
+    color: var(--secondary-text);
+    font-family: var(--font-family-sans);
+    font-size: var(--text-base);
+}
+
+#newFolderInput::placeholder {
+    color: var(--muted-text);
+}
+
+#newFolderInput:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    background-color: var(--secondary-bg);
+    box-shadow: 0 0 0 3px var(--accent-shadow);
+}
+
+.folder-action-btn {
+    background-color: var(--folder-action-bg);
+    color: var(--primary-text);
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: var(--space-sm) var(--space-md);
+    cursor: pointer;
+    font-size: var(--text-xs);
+    font-family: var(--font-family-sans);
+    transition: all var(--transition-base);
+}
+
+.folder-action-btn:hover {
+    background-color: var(--folder-action-hover);
+    transform: translateY(-1px);
+}
+
+.folder-list {
+    max-height: calc(100% - 50px);
+    overflow-y: auto;
+    padding: 4px 6px 8px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+    font-family: var(--font-family-sans);
+    font-size: 13px;
+    line-height: 1.3;
+    overscroll-behavior: contain;
+}
+
+.folder-list.dragging-pan {
+    cursor: grabbing;
+    user-select: none;
+}
+
+.folder-list::-webkit-scrollbar {
+    width: var(--scrollbar-width);
+}
+
+.folder-list::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+    border-radius: var(--radius-sm);
+}
+
+.folder-list::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: var(--radius-sm);
+}
+
+.folder-list::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+}
+
+.folder-item {
+    display: flex;
+    align-items: center;
+    padding: 3px 6px;
+    margin: 0;
+    border-radius: var(--radius-sm);
+    cursor: move;
+    transition: background-color var(--transition-base);
+    white-space: nowrap;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    user-select: none;
+    min-height: 22px;
+}
+
+.node-item {
+    display: flex;
+    align-items: center;
+    padding: 3px 6px;
+    margin: 0;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    white-space: nowrap;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    user-select: none;
+    position: relative;
+    min-height: 22px;
+}
+
+.node-item:hover {
+    background-color: #f5f5f5;
+}
+
+.folder-icon,
+.node-icon {
+    margin-right: 4px;
+    flex-shrink: 0;
+    font-size: 13px;
+    line-height: 1;
+}
+
+.folder-name,
+.node-name {
+    flex-grow: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 13px;
+    line-height: 1.3;
+}
+
+.folder-count {
+    background: #eee;
+    padding: 0 6px;
+    border-radius: 8px;
+    font-size: 11px;
+    line-height: 1.5;
+    color: #666;
+    margin-left: 4px;
+}
+
+.folder-item.active {
+    background-color: #e3f2fd;
+}
+
+/* Folder button group styling */
+.folder-button-group {
+    display: flex;
+    gap: var(--space-md);
+    margin-top: var(--space-md);
+}
+
+/* Compact folder button variant */
+.folder-button.compact-folder {
+    display: flex;
+    align-items: center;
+    padding: var(--space-xs) var(--space-md);
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: var(--radius-xl);
+    font-size: 13px;
+    white-space: nowrap;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.folder-button.compact-folder:hover {
+    background-color: #e9ecef;
+}
+
+.folder-button.compact-folder.selected {
+    background-color: var(--accent-color);
+    color: white;
+    border-color: var(--accent-color);
+}
+
+/* Horizontal folder styling */
+.folder-button.horizontal-folder {
+    background-color: rgba(70, 130, 180, 0.4);
+    color: white;
+    font-weight: normal;
+}
+
+.folder-button.horizontal-folder:hover {
+    background-color: rgba(70, 130, 180, 0.6);
+}
+
+.folder-button.horizontal-folder.selected {
+    background-color: rgba(70, 130, 180, 0.8);
+    font-weight: bold;
+}
+
+.folder-toggle-horizontal {
+    background-color: rgba(70, 130, 180, 0.4);
+    color: white;
+}
+
+.folder-toggle-horizontal:hover {
+    background-color: rgba(70, 130, 180, 0.6);
+}
+
+.nested-folders {
+    border-left: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Folder create and cancel buttons */
+.folder-create-btn, 
+.folder-cancel-btn {
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-sm);
+    border: none;
+    cursor: pointer;
+    flex: 1;
+    text-align: center;
+}
+
+.folder-create-btn {
+    background-color: rgba(70, 130, 180, 0.8);
+    color: white;
+}
+
+.folder-cancel-btn {
+    background-color: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* ========================================
+   DRAG AND DROP
+======================================== */
+.draggable {
+    cursor: grab;
+    user-select: none;
+    transition: all var(--transition-base);
+}
+
+.draggable:active {
+    cursor: grabbing;
+}
+
+.dragging {
+    opacity: var(--drag-opacity);
+    transform: scale(var(--drag-scale));
+}
+
+.drag-over {
+    background-color: var(--drag-over-bg) !important;
+    border: 2px dashed var(--drag-over-border) !important;
+}
+
+.drag-accent {
+    background-color: var(--drag-accent-bg) !important;
+}
+
+.drag-handle {
+    cursor: grab;
+    padding: var(--space-xs);
+    border-radius: var(--radius-sm);
+    transition: background-color var(--transition-base);
+}
+
+.drag-handle:hover {
+    background-color: var(--hover-bg);
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+    background-color: var(--active-bg);
+}
+
+/* ========================================
+   CONTEXT MENU
+======================================== */
+.context-menu {
+    position: fixed;
+    background-color: var(--context-menu-bg);
+    border-radius: var(--radius-md);
+    padding: var(--space-xs);
+    min-width: 150px;
+    box-shadow: var(--shadow-lg);
+    z-index: var(--z-index-max);
+    display: none;
+}
+
+.context-menu-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    color: var(--primary-text);
+    font-size: var(--text-sm);
+    font-family: var(--font-family-sans);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-base);
+}
+
+.context-menu-item:hover {
+    background-color: var(--context-menu-hover);
+}
+
+.context-menu-item.delete:hover {
+    background-color: var(--context-delete-hover);
+    color: var(--danger-color);
+}
+
+.context-menu-separator {
+    height: 1px;
+    background-color: var(--folder-nested-border);
+    margin: var(--space-xs) 0;
+}
+
+/* 기본 삭제 버튼 스타일 */
+.context-menu .delete-btn {
+    display: block;
+    width: 100%;
+    padding: 8px 16px;
+    background: #ff4444;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: var(--font-family-sans);
+}
+
+.context-menu .delete-btn:hover {
+    background: #ff6666;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 68, 68, 0.3);
+}
+
+/* 이름 변경 버튼 스타일 */
+.context-menu .rename-btn {
+    display: block;
+    width: 100%;
+    padding: 8px 16px;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: var(--font-family-sans);
+    margin-bottom: 4px;
+}
+
+.context-menu .rename-btn:hover {
+    background: #66BB6A;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+/* 새로운 삭제 확인 UI */
+.delete-confirmation {
+    position: fixed;
+    background: rgba(0, 0, 0, 0.95);
+    border: 2px solid #ff4444;
+    border-radius: 12px;
+    padding: 16px;
+    min-width: 200px;
+    box-shadow: 0 8px 32px rgba(255, 68, 68, 0.3);
+    z-index: 10000;
+    font-family: var(--font-family-sans);
+    backdrop-filter: blur(10px);
+}
+
+.delete-confirmation-text {
+    color: #ffffff;
+    font-size: 14px;
+    margin-bottom: 12px;
+    text-align: center;
+    font-weight: 500;
+}
+
+.delete-confirmation-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.delete-confirm-btn, .delete-cancel-btn {
+    width: 50px;
+    height: 50px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 20px;
+    font-weight: bold;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.delete-confirm-btn {
+    background: linear-gradient(135deg, #ff4444, #cc3333);
+    color: white;
+}
+
+.delete-confirm-btn:hover {
+    background: linear-gradient(135deg, #ff6666, #ee4444);
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(255, 68, 68, 0.4);
+}
+
+.delete-cancel-btn {
+    background: linear-gradient(135deg, #666666, #444444);
+    color: white;
+}
+
+.delete-cancel-btn:hover {
+    background: linear-gradient(135deg, #888888, #666666);
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(102, 102, 102, 0.4);
+}
+
+.delete-confirmation.show {
+    display: block;
+    animation: deleteConfirmShow 0.2s ease-out;
+}
+
+@keyframes deleteConfirmShow {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* ========================================
+   AUTHENTICATION
+======================================== */
+.auth-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 400px;
+    background-color: var(--secondary-bg);
+    border-radius: var(--radius-lg);
+    padding: var(--space-2xl);
+    box-shadow: var(--shadow-xl);
+    z-index: var(--z-index-modal);
+}
+
+.auth-title {
+    color: var(--auth-text-color);
+    font-size: var(--text-2xl);
+    font-weight: bold;
+    margin-bottom: var(--space-xl);
+    text-align: center;
+    font-family: var(--font-family-sans);
+}
+
+.auth-input {
+    width: 100%;
+    padding: var(--space-md);
+    margin-bottom: var(--space-lg);
+    border: 2px solid var(--input-border);
+    border-radius: var(--radius-md);
+    font-size: var(--text-base);
+    font-family: var(--font-family-sans);
+    transition: all var(--transition-base);
+}
+
+.auth-input:focus {
+    border-color: var(--accent-color);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--accent-shadow);
+}
+
+.auth-button {
+    width: 100%;
+    padding: var(--space-md);
+    background-color: var(--accent-color);
+    color: var(--primary-text);
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: var(--text-base);
+    font-weight: bold;
+    cursor: pointer;
+    transition: all var(--transition-base);
+}
+
+.auth-button:hover {
+    background-color: var(--accent-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.auth-link {
+    display: block;
+    text-align: center;
+    margin-top: var(--space-lg);
+    color: var(--accent-color);
+    text-decoration: none;
+    font-size: var(--text-sm);
+    transition: color var(--transition-base);
+}
+
+.auth-link:hover {
+    color: var(--accent-hover);
+    text-decoration: underline;
+}
+
+.auth-error {
+    color: var(--danger-color);
+    font-size: var(--text-sm);
+    margin-top: var(--space-sm);
+    text-align: center;
+}
+
+/* ========================================
+   SPREADSHEET
+======================================== */
+.spreadsheet-container {
+    min-width: var(--spreadsheet-min-width);
+    background: var(--secondary-bg);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    overflow: hidden;
+}
+
+.spreadsheet-header {
+    background-color: var(--spreadsheet-header-bg);
+    padding: var(--space-md);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.spreadsheet-title {
+    font-size: var(--text-lg);
+    font-weight: bold;
+    color: var(--auth-text-color);
+}
+
+.spreadsheet-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(var(--spreadsheet-cell-min-width), 1fr));
+    gap: 1px;
+    background-color: var(--border-color);
+    padding: 1px;
+}
+
+.spreadsheet-cell {
+    height: var(--spreadsheet-cell-height);
+    background-color: white;
+    border: none;
+    padding: var(--space-sm);
+    font-size: var(--text-sm);
+    font-family: var(--font-family-sans);
+    transition: all var(--transition-base);
+}
+
+.spreadsheet-cell:focus {
+    background-color: var(--spreadsheet-focus-bg);
+    outline: 2px solid var(--accent-color);
+    z-index: 1;
+}
+
+.spreadsheet-cell.header {
+    background-color: var(--spreadsheet-header-bg);
+    font-weight: bold;
+    text-align: center;
+}
+
+.spreadsheet-resize-handle {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: var(--spreadsheet-handle-width);
+    background-color: transparent;
+    cursor: col-resize;
+    transition: background-color var(--transition-base);
+}
+
+.spreadsheet-resize-handle:hover {
+    background-color: var(--accent-color);
+}
+
+/* ========================================
+   ERROR NOTIFICATION SYSTEM
+======================================== */
+.error-notification {
+    position: fixed;
+    top: var(--space-xl);
+    right: var(--space-xl);
+    background: var(--danger-color);
+    color: white;
+    padding: var(--space-md) var(--space-lg);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-lg);
+    z-index: var(--z-index-max);
+    font-size: var(--text-sm);
+    max-width: 300px;
+    animation: slideInRight var(--transition-slow) ease;
+}
+
+/* Animation for error notifications */
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Component-specific utility styles */
+.color-dots { display: none; }
+#nodeColor { display: none; }
+.resize-handle { display: none; }
+
+/* UI elements cursor override */
+.node, #editor, .calendar-container, .folder-container, 
+.auth-button, .show-folder-btn, .show-calendar-btn, 
+#addButton, #spreadsheetButton {
+    cursor: default;
+}
+
+.horizontal-folder-container {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-md);
+    background-color: var(--folder-horizontal-bg);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-lg);
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.horizontal-folder-container::-webkit-scrollbar {
+    height: var(--scrollbar-width);
+}
+
+.horizontal-folder-container::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+    border-radius: var(--radius-sm);
+}
+
+.horizontal-folder-container::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: var(--radius-sm);
+}
+
+.horizontal-folder-container::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+}
+
+.horizontal-folder-btn {
+    padding: var(--space-sm) var(--space-lg);
+    background-color: var(--folder-horizontal-bg);
+    color: var(--primary-text);
+    border: 1px solid var(--folder-nested-border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: var(--text-sm);
+    font-family: var(--font-family-sans);
+    white-space: nowrap;
+    transition: all var(--transition-base);
+}
+
+.horizontal-folder-btn:hover {
+    background-color: var(--folder-horizontal-hover);
+}
+
+.horizontal-folder-btn.active {
+    background-color: var(--folder-horizontal-active);
+}
+
+.folder-cancel-btn {
+    background-color: var(--folder-cancel-bg);
+    color: var(--primary-text);
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: var(--space-sm) var(--space-md);
+    cursor: pointer;
+    font-size: var(--text-xs);
+    font-family: var(--font-family-sans);
+    transition: all var(--transition-base);
+}
+
+.folder-cancel-btn:hover {
+    background-color: var(--folder-action-hover);
+    transform: translateY(-1px);
+} 

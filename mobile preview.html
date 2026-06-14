@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>모바일 미리보기</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0;
+            margin: 0;
+            min-height: 100vh;
+            background: #f5f5f5;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+        
+        select {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-bottom: 20px;
+            padding: 8px;
+            border-radius: 4px;
+            width: 90%;
+            max-width: 300px;
+            z-index: 1000;
+        }
+        
+        .device-frame {
+            position: relative;
+            border: 8px solid #333;
+            border-radius: 30px;
+            overflow: hidden;
+            background: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 420px;
+            height: 932px;
+            margin: 60px 0 20px 0;
+            box-sizing: border-box;
+        }
+        
+        iframe {
+            border: none;
+            display: block;
+            width: 100%;
+            height: 100%;
+            transform-origin: top left;
+            box-sizing: border-box;
+        }
+        
+        @media screen and (max-width: 768px) {
+            body {
+                padding: 0;
+                margin: 0;
+                background: white;
+                overflow: hidden;
+                width: 100%;
+                height: 100%;
+            }
+            
+            .device-frame {
+                border: none;
+                border-radius: 0;
+                box-shadow: none;
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+            }
+            
+            select {
+                display: none;
+            }
+            
+            iframe {
+                width: 100%;
+                height: 100%;
+                transform: none !important;
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <select id="deviceSelect" onchange="changeDevice()">
+        <option value="galaxyZFold3" selected>Galaxy Z Fold3 (펼친 화면)</option>
+        <option value="galaxyZFold3Folded">Galaxy Z Fold3 (접은 화면)</option>
+        <option value="iPhone16">iPhone 16</option>
+        <option value="iPhone16Pro">iPhone 16 Pro</option>
+    </select>
+    
+    <div id="deviceFrame" class="device-frame">
+        <iframe id="preview" src="index.html" title="Mobile Preview"></iframe>
+    </div>
+
+    <script>
+        const devices = {
+            galaxyZFold3: { width: 420, height: 932 },
+            galaxyZFold3Folded: { width: 280, height: 932 },
+            iPhone16: { width: 393, height: 852 },
+            iPhone16Pro: { width: 393, height: 852 }
+        };
+
+        function changeDevice() {
+            const device = devices[deviceSelect.value];
+            const frame = document.getElementById('deviceFrame');
+            const preview = document.getElementById('preview');
+            
+            if (window.innerWidth <= 768) {
+                // 모바일 코드는 유지
+                frame.style.width = '100%';
+                frame.style.height = '100%';
+                preview.style.width = '100%';
+                preview.style.height = '100%';
+                preview.style.transform = 'none';
+                
+                const viewport = document.querySelector('meta[name=viewport]');
+                viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+            } else {
+                // 데스크톱 스케일링 로직 수정
+                frame.style.width = device.width + 'px';
+                frame.style.height = device.height + 'px';
+                preview.style.width = '100%';
+                preview.style.height = '100%';
+                
+                // 새로운 스케일링 로직
+                const containerWidth = window.innerWidth * 0.9;
+                const containerHeight = window.innerHeight - 100;
+                
+                // 너비와 높이 비율 계산
+                const scaleWidth = containerWidth / device.width;
+                const scaleHeight = containerHeight / device.height;
+                
+                // 화면이 디바이스보다 큰 경우 1보다 큰 스케일 허용
+                const scale = Math.min(scaleWidth, scaleHeight);
+                
+                // transform 적용 및 중앙 정렬
+                const scaledWidth = device.width * scale;
+                const leftOffset = (window.innerWidth - scaledWidth) / 2;
+                
+                frame.style.transform = `scale(${scale})`;
+                frame.style.transformOrigin = 'top left';
+                frame.style.marginLeft = `${leftOffset}px`;
+                preview.style.transform = 'none';
+            }
+        }
+
+        // 초기 설정
+        changeDevice();
+        
+        // 디바운스 함수 추가
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+        
+        // 리사이즈 이벤트에 디바운스 적용
+        window.addEventListener('resize', debounce(changeDevice, 250));
+        
+        // 기본값으로 Galaxy Z Fold3 선택
+        document.getElementById('deviceSelect').value = 'galaxyZFold3';
+        changeDevice();
+    </script>
+</body>
+</html>

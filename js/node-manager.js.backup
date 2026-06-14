@@ -1,0 +1,1605 @@
+// 전역 상태 관리
+const state = {
+    selectedNode: null,
+    dragging: false,
+    time: 0,
+    scale: 1,
+    minScale: 0.5,
+    maxScale: 5,
+    offset: { x: 0, y: 0 },
+    transform: {
+        x: 0,
+        y: 0,
+        scale: 1
+    },
+    isDragging: false,
+    animationStarted: false,
+    selectedFolder: '/',
+    history: {
+        undoStack: [],
+        redoStack: [],
+        maxSize: 50
+    },
+    floatingEnabled: true,
+    calendar: {
+        currentDate: new Date(),
+        selectedDate: null,
+        animating: false
+    }
+};
+
+// 초기 노드 데이터 (WeakMap을 사용하여 메모리 누수 방지)
+let nodes = [];
+const nodeMetadata = new WeakMap(); // 노드 메타데이터 저장용
+
+// 링크 데이터
+let links = [];
+
+// 성능 최적화를 위한 디바운스 및 스로틀 유틸리티
+const debounce = (func, wait) => {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+};
+
+const throttle = (func, limit) => {
+    let inThrottle;
+    return function(...args) {
+        if (!inThrottle) {
+            func.apply(this, args);
+            inThrottle = true;
+            setTimeout(() => inThrottle = false, limit);
+        }
+    };
+};
+
+// 폴더 색상 캐싱
+const folderColorCache = new Map();
+
+// 감정 색상 맵 (성능 개선)
+const emotionColorMap = new Map([
+    ['happy', '#FFE566'],
+    ['angry', '#FF6B6B'],
+    ['sad', '#4ECDC4'],
+    ['worried', '#45B7D1'],
+    ['#FFE566', '#FFE566'],
+    ['#FF6B6B', '#FF6B6B'],
+    ['#4ECDC4', '#4ECDC4']
+]);
+
+// 캔버스 상태
+const canvasState = {
+    isDragging: false,
+    startX: 0,
+    startY: 0,
+    translateX: 0,
+    translateY: 0,
+    scale: 1,
+    minScale: 0.3, // 최소 스케일 제한 조정
+    maxScale: 3,  // 최대 스케일 제한 조정
+    transform: {
+        x: 0,
+        y: 0,
+        scale: 1
+    },
+    isZooming: false,
+    lastDistance: 0
+};
+
+// NodeManager 객체 (개선된 버전)
+const NodeManager = {
+    // 디바운스된 UI 업데이트
+    debouncedUpdateUI: debounce(() => {
+        if (typeof updateLinks === 'function') updateLinks();
+        if (typeof render === 'function') render();
+    }, 16), // 60fps
+
+    createNew: async function (x, y) {
+        const now = new Date();
+        const nodeId = Date.now(); // string이 아닌 number로 생성
+        
+        const newNode = {
+            id: nodeId,
+            title: '',
+            content: '',
+            x: Number(x) || 0,
+            y: Number(y) || 0,
+            baseX: Number(x) || 0,
+            baseY: Number(y) || 0,
+            phase: Math.random() * Math.PI * 2,
+            folder: state.selectedFolder || '/',
+            emotion: 'default',
+            date: formatDateToISO(now),
+            vx: 0,
+            vy: 0,
+            mass: 1,
+            isTemporary: true,
+            createdAt: now.toISOString(),
+            updatedAt: now.toISOString()
+        };
+
+        try {
+            console.log('새 노드 생성 시작:', {
+                nodeId: nodeId,
+                nodeType: typeof nodeId,
+                position: { x: newNode.x, y: newNode.y },
+                isValidId: nodeId !== null && nodeId !== undefined && !isNaN(nodeId)
+            });
+            
+            // ID 유효성 재확인
+            if (!nodeId || nodeId === null || nodeId === undefined || isNaN(nodeId)) {
+                throw new Error('유효하지 않은 노드 ID가 생성되었습니다.');
+            }
+            
+            // Firebase 연동 확인
+            if (!window.FirebaseManager) {
+                throw new Error('FirebaseManager가 초기화되지 않았습니다.');
+            }
+
+            // 먼저 Firebase에 저장
+            await window.FirebaseManager.saveNode(newNode);
+
+            // 중복 노드 제거 (ID 타입 일관성 확인)
+            const existingIds = new Set(nodes.map(node => node.id.toString()));
+            if (!existingIds.has(newNode.id.toString())) {
+                nodes.push(newNode);
+                console.log('새 노드 로컬 배열에 추가 완료:', nodeId);
+            } else {
+                console.warn('중복 노드 생성 방지:', nodeId);
+            }
+
+            // UI 업데이트 (디바운스 적용)
+            this.debouncedUpdateUI();
+
+            return newNode;
+        } catch (error) {
+            console.error('노드 생성 중 오류:', error);
+            this.showErrorNotification('노드 생성에 실패했습니다. 다시 시도해주세요.', 'error');
+            return null;
+        }
+    },
+
+    add: async function (node) {
+        if (!this.validateNode(node)) {
+            throw new Error('유효하지 않은 노드 데이터입니다.');
+        }
+
+        try {
+            // Firebase에 저장 후 배열에 추가
+            if (window.FirebaseManager) {
+                await window.FirebaseManager.saveNode(node);
+            }
+            
+            nodes.push(node);
+            this.debouncedUpdateUI();
+            return node;
+        } catch (error) {
+            console.error('노드 추가 중 오류:', error);
+            this.showErrorNotification('노드 추가에 실패했습니다.', 'error');
+            return null;
+        }
+    },
+
+    // 노드 유효성 검증
+    validateNode(node) {
+        const requiredFields = ['id', 'title', 'x', 'y'];
+        return requiredFields.every(field => 
+            node.hasOwnProperty(field) && node[field] !== undefined
+        );
+    },
+
+    // 에러 알림 표시
+    showErrorNotification(message, type = 'error') {
+        // 기존 알림 제거
+        const existingNotification = document.querySelector('.notification');
+        if (existingNotification) {
+            existingNotification.remove();
+        }
+
+        // 새 알림 생성
+        const notification = document.createElement('div');
+        notification.className = 'notification';
+        notification.textContent = message;
+        
+        const isSuccess = type === 'success';
+        const backgroundColor = isSuccess ? '#4CAF50' : '#ff4444';
+        
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${backgroundColor};
+            color: white;
+            padding: 12px 16px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 10000;
+            font-size: 14px;
+            animation: slideIn 0.3s ease;
+        `;
+
+        document.body.appendChild(notification);
+
+        // 성공 메시지는 2초, 에러는 4초 후 제거
+        const duration = isSuccess ? 2000 : 4000;
+        setTimeout(() => {
+            notification.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => notification.remove(), 300);
+        }, duration);
+    }
+};
+
+// 애니메이션 관리를 위한 객체 (Web Animations API 활용)
+const AnimationManager = {
+    // 새 노드 등장 애니메이션 (Web Animations API 사용)
+    animateNewNode: function (node, targetX, targetY) {
+        const startX = targetX + 200; // 약간 오른쪽에서 시작
+        const startY = targetY;
+
+        // 초기 위치 설정
+        node.x = startX;
+        node.y = startY;
+
+        // Web Animations API 사용 (지원하는 경우)
+        const element = document.querySelector(`[data-id="${node.id}"]`);
+        if (element && element.animate) {
+            element.animate([
+                { transform: `translate(${startX}px, ${startY}px) scale(0.8)`, opacity: 0 },
+                { transform: `translate(${targetX}px, ${targetY}px) scale(1)`, opacity: 1 }
+            ], {
+                duration: 500,
+                easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                fill: 'forwards'
+            });
+        }
+
+        // 실제 좌표 업데이트
+        this.smoothUpdatePosition(node, targetX, targetY, 500);
+    },
+
+    // 부드러운 위치 업데이트
+    smoothUpdatePosition: function(node, targetX, targetY, duration = 300) {
+        const startX = node.x;
+        const startY = node.y;
+        const startTime = performance.now();
+
+        const updatePosition = (currentTime) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // 더 부드러운 이징 함수 사용
+            const eased = this.easeOutCubic(progress);
+
+            node.x = startX + (targetX - startX) * eased;
+            node.y = startY + (targetY - startY) * eased;
+
+            if (typeof render === 'function') render();
+
+            if (progress < 1) {
+                requestAnimationFrame(updatePosition);
+            }
+        };
+
+        requestAnimationFrame(updatePosition);
+    },
+
+    // 개선된 이징 함수
+    easeOutCubic: function(t) {
+        return 1 - Math.pow(1 - t, 3);
+    },
+
+    // 노드 복귀 애니메이션 (Promise 기반)
+    animateNodeReturn: function (node, targetX, targetY) {
+        return new Promise((resolve) => {
+            const startX = node.x;
+            const startY = node.y;
+            const startScale = node.style?.scale || 2;
+            const duration = 1000;
+            const startTime = performance.now();
+
+            const update = (currentTime) => {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const eased = this.easeOutCubic(progress);
+
+                node.x = startX + (targetX - startX) * eased;
+                node.y = startY + (targetY - startY) * eased;
+
+                node.style = {
+                    backgroundColor: '#000000',
+                    scale: startScale + (1 - startScale) * eased
+                };
+
+                if (typeof render === 'function') render();
+
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                } else {
+                    resolve();
+                }
+            };
+
+            requestAnimationFrame(update);
+        });
+    },
+
+    // 기존 노드 애니메이션
+    animateExistingNode: function (node, targetX, targetY, startX, startY) {
+        const duration = 1000;
+        const startTime = performance.now();
+
+        const update = (currentTime) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const easing = this.easeOutCubic(progress);
+
+            node.x = startX + (targetX - startX) * easing;
+            node.y = startY + (targetY - startY) * easing;
+
+            if (progress < 1) {
+                requestAnimationFrame(update);
+            }
+            if (typeof render === 'function') render();
+        };
+
+        requestAnimationFrame(update);
+    }
+};
+
+// 링크 업데이트 함수
+function updateLinks() {
+    links = [];
+    nodes.forEach(node => {
+        // 폴더 구조에 따른 연결
+        if (node.folder && node.folder !== '/') {
+            const parent = nodes.find(n => n.isFolder && n.folderPath === node.folder);
+            if (parent) {
+                // 거리에 따라 링크 추가 여부 결정
+                const dx = parent.x - node.x;
+                const dy = parent.y - node.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // 너무 멀리 있는 노드는 링크 생성 안함
+                if (distance < 1500) {
+                    links.push({
+                        source: parent.id,
+                        target: node.id,
+                        isFolder: true,
+                        isDragging: node.isDragging || parent.isDragging // 드래그 상태 표시
+                    });
+                }
+            }
+        }
+    });
+}
+
+// 제목 길이에 따른 폰트 크기 계산 함수 (개선된 버전)
+function calculateTitleFontSize(title, isFolder = false) {
+    if (!title) return isFolder ? '12px' : '14px';
+    
+    const length = title.length;
+    let fontSize;
+    
+    if (isFolder) {
+        // 폴더의 경우
+        if (length <= 3) fontSize = 16;
+        else if (length <= 6) fontSize = 14;
+        else if (length <= 10) fontSize = 12;
+        else if (length <= 15) fontSize = 10;
+        else fontSize = 9;
+    } else {
+        // 일반 노드의 경우 - 더 작은 폰트를 사용하여 더 많은 텍스트 표시
+        if (length <= 5) fontSize = 20;      // 매우 짧은 제목
+        else if (length <= 10) fontSize = 16; // 짧은 제목
+        else if (length <= 15) fontSize = 14; // 중간 짧은 제목
+        else if (length <= 25) fontSize = 12; // 중간 제목
+        else if (length <= 35) fontSize = 10; // 긴 제목
+        else if (length <= 50) fontSize = 9; // 더 긴 제목
+        else if (length <= 70) fontSize = 8; // 매우 긴 제목
+        else fontSize = 7; // 예외적으로 긴 경우
+    }
+    
+    return `${fontSize}px`;
+}
+
+// 노드 생성 및 렌더링 함수
+function createNodeElement(node) {
+    const div = document.createElement('div');
+    div.className = 'node';
+    if (node.isFolder) {
+        div.classList.add('folder-node');
+    }
+    if (node.isSpreadsheet) {
+        div.classList.add('spreadsheet-node');
+    }
+    
+    // nodeId 유효성 검사 완화 - 더 관대하게 처리
+    if (node.id === null || node.id === undefined) {
+        console.error('노드에 ID가 없습니다:', node);
+        return null;
+    }
+    
+    const safeNodeId = node.id.toString();
+    div.setAttribute('data-id', safeNodeId);
+    div.setAttribute('data-emotion', node.emotion || 'default');
+
+    console.log('노드 요소 생성:', {
+        nodeId: node.id,
+        safeNodeId: safeNodeId,
+        nodeTitle: node.title
+    });
+
+    div.style.opacity = node.opacity !== undefined ? node.opacity : 1;
+
+    // 제목 길이 제한을 크게 늘림 (100자로 증가)
+    const truncatedTitle = node.title && node.title.length > 100 
+        ? node.title.substring(0, 100) + '...' 
+        : node.title || '';
+
+    const dateStr = (!node.isFolder && node.date) ? formatDate(new Date(node.date)) : '';
+    let textColor = node.isSpreadsheet ? '#4CAF50' : (node.titleColor || node.emotion || '#FFFFFF');
+    
+    // 폴더 노드의 경우 색상 개선
+    if (node.isFolder) {
+        textColor = getFolderColor(node.folder);
+    }
+    
+    // 동적 폰트 크기 계산 (원본 제목 길이 기준)
+    const titleFontSize = calculateTitleFontSize(node.title || '', node.isFolder);
+
+    // 노드 내부에는 제목만 표시
+    div.innerHTML = `
+        <div class="title" style="font-size: ${titleFontSize}; color: ${textColor};">
+            ${truncatedTitle}
+        </div>
+    `;
+
+    // 제목 요소 참조 가져오기
+    const titleElement = div.querySelector('.title');
+
+    // 날짜를 노드 내부에 직접 표시 (간단하고 확실한 방법)
+    if (!node.isFolder && node.date && titleElement) {
+        console.log('날짜 처리 시작:', {
+            nodeId: node.id,
+            nodeTitle: node.title,
+            rawDate: node.date,
+            dateType: typeof node.date,
+            isFolder: node.isFolder
+        });
+
+        // 날짜 형식 정규화
+        let displayDate = '';
+        try {
+            if (node.date) {
+                let dateObj;
+                if (node.date instanceof Date) {
+                    dateObj = node.date;
+                } else {
+                    dateObj = new Date(node.date);
+                }
+                
+                if (!isNaN(dateObj.getTime())) {
+                    displayDate = dateObj.toLocaleDateString('ko-KR', {
+                        month: 'short',
+                        day: 'numeric'
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('날짜 파싱 오류:', error);
+        }
+
+        console.log('날짜 파싱 결과:', {
+            nodeId: node.id,
+            originalDate: node.date,
+            parsedDate: displayDate
+        });
+
+        // 노드 바깥 아래에 트렌디한 날짜 표시
+        if (displayDate && displayDate !== '') {
+            const dateElement = document.createElement('div');
+            dateElement.className = 'node-date-external-trendy';
+            dateElement.textContent = displayDate;
+            
+            // 트렌디한 스타일 적용
+            dateElement.style.cssText = `
+                position: absolute !important;
+                top: calc(100% + 12px) !important;
+                left: 50% !important;
+                transform: translateX(-50%) !important;
+                font-size: 11px !important;
+                font-weight: 600 !important;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+                color: rgba(255, 255, 255, 0.9) !important;
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05)) !important;
+                backdrop-filter: blur(10px) !important;
+                -webkit-backdrop-filter: blur(10px) !important;
+                border: 1px solid rgba(255, 255, 255, 0.2) !important;
+                border-radius: 12px !important;
+                padding: 6px 12px !important;
+                white-space: nowrap !important;
+                pointer-events: none !important;
+                z-index: 1000 !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                box-shadow: 
+                    0 4px 16px rgba(0, 0, 0, 0.1),
+                    0 2px 4px rgba(0, 0, 0, 0.1),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+                transition: all 0.2s ease !important;
+                letter-spacing: 0.5px !important;
+                text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+                min-height: 20px !important;
+                will-change: transform !important;
+            `;
+            
+            // 호버 효과 추가
+            dateElement.addEventListener('mouseenter', () => {
+                dateElement.style.transform = 'translateX(-50%) scale(1.05)';
+                dateElement.style.background = 'linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08))';
+            });
+            
+            dateElement.addEventListener('mouseleave', () => {
+                dateElement.style.transform = 'translateX(-50%) scale(1)';
+                dateElement.style.background = 'linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05))';
+            });
+            
+            div.appendChild(dateElement);
+            
+            console.log('트렌디한 날짜 요소 추가 완료:', {
+                nodeId: node.id,
+                dateText: displayDate,
+                elementCreated: !!dateElement,
+                elementInDOM: !!dateElement.parentNode
+            });
+        } else {
+            console.log('날짜 표시 생략:', {
+                nodeId: node.id,
+                displayDate: displayDate,
+                rawDate: node.date,
+                isFolder: node.isFolder
+            });
+        }
+    } else {
+        console.log('날짜 표시 건너뛰기:', {
+            nodeId: node.id,
+            nodeTitle: node.title,
+            isFolder: node.isFolder,
+            hasDate: !!node.date,
+            hasTitleElement: !!titleElement,
+            rawDate: node.date,
+            condition: `isFolder: ${node.isFolder}, hasDate: ${!!node.date}, hasTitleElement: ${!!titleElement}`
+        });
+    }
+
+    div.style.left = node.x + 'px';
+    div.style.top = node.y + 'px';
+
+    if (node.isFolder) {
+        div.style.backgroundColor = '#000000';
+        const borderColor = getFolderColor(node.folder);
+        div.style.borderColor = borderColor;
+        div.style.setProperty('--border-color', borderColor);
+    } else if (node.isSpreadsheet) {
+        div.style.backgroundColor = '#000000';
+        div.style.border = `4px solid ${getFolderColor(node.folder)}`;
+    } else {
+        div.style.backgroundColor = node.style?.backgroundColor || '#000000';
+        div.style.borderColor = getFolderColor(node.folder);
+    }
+
+    // 컨텍스트 메뉴 이벤트 추가
+    div.addEventListener('contextmenu', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // 기존 컨텍스트 메뉴 제거
+        const existingMenu = document.querySelector('.context-menu');
+        if (existingMenu) {
+            existingMenu.remove();
+        }
+
+        // 새 컨텍스트 메뉴 생성
+        const menu = document.createElement('div');
+        menu.className = 'context-menu';
+        menu.style.left = `${e.clientX}px`;
+        menu.style.top = `${e.clientY}px`;
+        menu.style.display = 'block';
+        menu.innerHTML = `
+            <button class="delete-btn">삭제</button>
+        `;
+
+        // 삭제 버튼 이벤트
+        menu.querySelector('.delete-btn').addEventListener('click', async () => {
+            showDeleteConfirmation(e.clientX, e.clientY, async () => {
+                try {
+                    // 노드 객체에서 ID 추출 시 안전 처리
+                    const nodeIdToDelete = node.id;
+                    
+                    console.log('삭제 요청 노드 분석:', {
+                        nodeObject: node,
+                        extractedId: nodeIdToDelete,
+                        idType: typeof nodeIdToDelete,
+                        isValidId: nodeIdToDelete !== null && nodeIdToDelete !== undefined && 
+                                  !isNaN(nodeIdToDelete) && nodeIdToDelete !== 'null' && nodeIdToDelete !== 'undefined'
+                    });
+                    
+                    // nodeId 유효성 검사 강화
+                    if (!nodeIdToDelete || nodeIdToDelete === null || nodeIdToDelete === undefined || 
+                        (typeof nodeIdToDelete === 'number' && isNaN(nodeIdToDelete)) ||
+                        (typeof nodeIdToDelete === 'string' && (nodeIdToDelete === 'NaN' || nodeIdToDelete.trim() === '' || 
+                         nodeIdToDelete === 'null' || nodeIdToDelete === 'undefined')) ||
+                        nodeIdToDelete.toString() === 'NaN') {
+                        
+                        console.error('유효하지 않은 노드 ID 감지:', {
+                            nodeId: nodeIdToDelete,
+                            nodeTitle: node.title,
+                            nodeType: typeof nodeIdToDelete,
+                            nodeObject: node
+                        });
+                        
+                        // 강제 삭제 로직 강화
+                        console.log('유효하지 않은 노드 강제 삭제 시작:', nodeIdToDelete);
+                        
+                        // DOM에서 즉시 제거 (여러 가지 방법으로 시도)
+                        const nodeSelectors = [
+                            `[data-id="${node.id}"]`,
+                            `[data-id="${nodeIdToDelete}"]`,
+                            `.node[data-id="${node.id}"]`,
+                            `.node[data-id="${nodeIdToDelete}"]`
+                        ];
+                        
+                        nodeSelectors.forEach(selector => {
+                            const nodeElement = document.querySelector(selector);
+                            if (nodeElement) {
+                                nodeElement.remove();
+                                console.log('DOM에서 노드 제거 성공:', selector);
+                            }
+                        });
+                        
+                        // 로컬 배열에서도 제거 (여러 조건으로 시도)
+                        const removeFromArray = (arr, targetNode) => {
+                            let removed = false;
+                            for (let i = arr.length - 1; i >= 0; i--) {
+                                const n = arr[i];
+                                if (n.id === targetNode.id || 
+                                    n.id === nodeIdToDelete ||
+                                    (n.title === targetNode.title && n.x === targetNode.x && n.y === targetNode.y) ||
+                                    (n.isSpreadsheet === targetNode.isSpreadsheet && n.title === targetNode.title)) {
+                                    arr.splice(i, 1);
+                                    removed = true;
+                                    console.log('배열에서 노드 제거:', i, n.id);
+                                }
+                            }
+                            return removed;
+                        };
+                        
+                        if (typeof nodes !== 'undefined') {
+                            removeFromArray(nodes, node);
+                        }
+                        if (window.nodes) {
+                            removeFromArray(window.nodes, node);
+                        }
+                        
+                        // Firebase에서도 삭제 시도 (다양한 ID로)
+                        const deleteFromFirebase = async () => {
+                            try {
+                                const possibleIds = [
+                                    node.id, 
+                                    nodeIdToDelete, 
+                                    node.id?.toString(), 
+                                    nodeIdToDelete?.toString(),
+                                    'NaN',  // NaN 문자열로도 시도
+                                    parseInt(node.x), // x 좌표로도 시도 (임시 해결책)
+                                    Date.now().toString() // 현재 시간으로도 시도
+                                ];
+                                
+                                for (const id of possibleIds) {
+                                    if (id !== null && id !== undefined && id !== 'null' && id !== 'undefined' && id !== '') {
+                                        try {
+                                            await FirebaseManager.deleteNode(id);
+                                            console.log('Firebase에서 노드 삭제 성공:', id);
+                                            break;
+                                        } catch (e) {
+                                            console.log('Firebase 삭제 시도 실패:', id, e.message);
+                                        }
+                                    }
+                                }
+                                
+                                // 모든 시도가 실패하면 스프레드시트 노드 전체 정리
+                                if (node.isSpreadsheet) {
+                                    console.log('스프레드시트 노드 전체 정리 시도');
+                                    await cleanupInvalidSpreadsheetNodes();
+                                }
+                            } catch (error) {
+                                console.warn('Firebase 삭제 실패, 로컬에서만 제거됨:', error);
+                            }
+                        };
+                        
+                        deleteFromFirebase();
+                        
+                        NodeManager.showErrorNotification('문제가 있는 노드가 삭제되었습니다.', 'success');
+                        
+                        // UI 업데이트
+                        if (typeof render === 'function') render();
+                        if (typeof renderFolderTree === 'function') renderFolderTree();
+                        return;
+                    }
+                    
+                    console.log('삭제 요청 시작:', {
+                        nodeId: nodeIdToDelete,
+                        nodeTitle: node.title,
+                        nodeType: typeof nodeIdToDelete,
+                        nodeObject: node
+                    });
+                    
+                    // Firebase에서 삭제
+                    await FirebaseManager.deleteNode(nodeIdToDelete);
+                    
+                    console.log('노드 삭제 완료:', nodeIdToDelete);
+                    NodeManager.showErrorNotification('노드가 성공적으로 삭제되었습니다.', 'success');
+                    
+                } catch (error) {
+                    console.error('노드 삭제 중 상세 오류:', {
+                        nodeId: node.id,
+                        nodeObject: node,
+                        error: error.message,
+                        stack: error.stack
+                    });
+                    
+                    // 구체적인 오류 메시지 제공
+                    let errorMessage = '삭제 중 오류가 발생했습니다.';
+                    if (error.message.includes('유효하지 않은')) {
+                        errorMessage = '노드 정보가 손상되었습니다. 페이지를 새로고침해주세요.';
+                    } else if (error.message.includes('권한') || error.message.includes('permissions')) {
+                        errorMessage = 'Firebase 보안 규칙을 확인해주세요. 삭제 권한이 없습니다.';
+                    } else if (error.message.includes('로그인')) {
+                        errorMessage = '삭제하려면 로그인이 필요합니다.';
+                    } else if (error.message.includes('네트워크')) {
+                        errorMessage = '네트워크 연결을 확인해주세요.';
+                    }
+                    
+                    NodeManager.showErrorNotification(errorMessage, 'error');
+                }
+            });
+            menu.remove();
+        });
+
+        document.body.appendChild(menu);
+
+        // 다른 곳 클릭시 메뉴 닫기
+        const closeMenu = (e) => {
+            if (!menu.contains(e.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        };
+        document.addEventListener('click', closeMenu);
+    });
+
+    initNodeDragEvents(div, node);
+    return div;
+}
+
+// 폴더 색상을 반환하는 함수 (캐싱 추가) - 폴더별 고유 색상 생성
+function getFolderColor(folder) {
+    if (folderColorCache.has(folder)) {
+        return folderColorCache.get(folder);
+    }
+    
+    // 폴더별 고유 색상 생성 (해시 기반)
+    let hash = 0;
+    for (let i = 0; i < folder.length; i++) {
+        hash = folder.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    
+    // 더 밝고 다양한 색상 생성 (흰색 방지)
+    const hue = Math.abs(hash) % 360;
+    // 채도와 밝기를 조정하여 가독성 좋고 밝은 색상 생성
+    const saturation = 60 + (Math.abs(hash) % 20); // 60-80%
+    const lightness = 50 + (Math.abs(hash) % 15);  // 50-65%
+    
+    const color = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+    
+    folderColorCache.set(folder, color);
+    return color;
+}
+
+// 폴더 색상을 밝게 만드는 함수 (하위 폴더용)
+function getLighterFolderColor(folder) {
+    const baseColor = getFolderColor(folder);
+    // HSL에서 밝기(lightness)를 75%로 증가
+    const hslMatch = baseColor.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+    if (hslMatch) {
+        const hue = hslMatch[1];
+        const saturation = hslMatch[2];
+        return `hsl(${hue}, ${saturation}%, 75%)`;
+    }
+    return baseColor;
+}
+
+// 노드 드래그 이벤트 초기화 함수 (성능 최적화)
+function initNodeDragEvents(div, node) {
+    let isDragging = false;
+    let startX, startY;
+    let dragThreshold = 5;
+    let hasMoved = false;
+    let touchStartTime = 0;
+    let longPressTimer;
+
+    // 스로틀된 렌더 함수
+    const throttledRender = throttle(() => {
+        if (typeof render === 'function') render();
+    }, 16); // 60fps
+
+    // 터치 이벤트 핸들러
+    function handleTouchStart(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        touchStartTime = performance.now();
+        isDragging = true;
+        hasMoved = false;
+        
+        const touch = e.touches[0];
+        startX = touch.clientX;
+        startY = touch.clientY;
+        state.offset.x = touch.clientX - node.x;
+        state.offset.y = touch.clientY - node.y;
+
+        // 물리 효과 제외를 위한 플래그 설정
+        node.isDragging = true;
+        div.classList.add('dragging');
+
+        longPressTimer = setTimeout(() => {
+            if (!hasMoved && typeof openEditor === 'function') {
+                openEditor(node);
+                isDragging = false;
+                node.isDragging = false;
+                div.classList.remove('dragging');
+            }
+        }, 500);
+    }
+
+    function handleTouchMove(e) {
+        if (isDragging) {
+            e.preventDefault();
+            
+            const touch = e.touches[0];
+            const dx = touch.clientX - startX;
+            const dy = touch.clientY - startY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance > dragThreshold) {
+                hasMoved = true;
+                clearTimeout(longPressTimer);
+                
+                node.x = touch.clientX - state.offset.x;
+                node.y = touch.clientY - state.offset.y;
+                
+                // DOM 위치 즉시 업데이트 (잔상 방지)
+                div.style.left = node.x + 'px';
+                div.style.top = node.y + 'px';
+                
+                throttledRender();
+            }
+        }
+    }
+
+    async function handleTouchEnd(e) {
+        clearTimeout(longPressTimer);
+        
+        if (isDragging) {
+            isDragging = false;
+            node.isDragging = false; // 물리 효과 플래그 해제
+            div.classList.remove('dragging');
+
+            // 위치가 변경되었다면 항상 Firebase에 저장
+            if (hasMoved) {
+                try {
+                    node.baseX = node.x;  // 기본 위치 업데이트
+                    node.baseY = node.y;
+                    node.updatedAt = new Date().toISOString();
+                    
+                    console.log('터치 드래그 완료, 위치 저장:', {
+                        nodeId: node.id,
+                        newPosition: { x: node.x, y: node.y }
+                    });
+                    
+                    if (window.FirebaseManager) {
+                        await window.FirebaseManager.saveNode(node);
+                        console.log('터치 드래그 위치 Firebase 저장 완료');
+                    }
+                } catch (error) {
+                    console.error('터치 드래그 위치 저장 중 오류:', error);
+                    NodeManager.showErrorNotification('위치 저장에 실패했습니다.', 'error');
+                }
+            }
+
+            // 짧은 탭(터치)이고 움직이지 않았다면 에디터 열기
+            const touchDuration = performance.now() - touchStartTime;
+            if (!hasMoved && touchDuration < 500 && typeof openEditor === 'function') {
+                openEditor(node);
+            }
+        }
+    }
+
+    // 기존 마우스 이벤트
+    div.addEventListener('mousedown', (e) => {
+        if (e.button === 0) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            isDragging = true;
+            hasMoved = false;
+            startX = e.clientX;
+            startY = e.clientY;
+            state.offset.x = e.clientX - node.x;
+            state.offset.y = e.clientY - node.y;
+
+            // 물리 효과 제외를 위한 플래그 설정
+            node.isDragging = true;
+            div.classList.add('dragging');
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+        }
+    });
+
+    async function handleMouseUp(e) {
+        if (isDragging) {
+            isDragging = false;
+            node.isDragging = false; // 물리 효과 플래그 해제
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+            div.classList.remove('dragging');
+
+            // 위치가 변경되었다면 항상 Firebase에 저장
+            if (hasMoved) {
+                try {
+                    node.baseX = node.x;  // 기본 위치 업데이트
+                    node.baseY = node.y;
+                    node.updatedAt = new Date().toISOString();
+                    
+                    console.log('마우스 드래그 완료, 위치 저장:', {
+                        nodeId: node.id,
+                        newPosition: { x: node.x, y: node.y }
+                    });
+                    
+                    if (window.FirebaseManager) {
+                        await window.FirebaseManager.saveNode(node);
+                        console.log('마우스 드래그 위치 Firebase 저장 완료');
+                    }
+                } catch (error) {
+                    console.error('마우스 드래그 위치 저장 중 오류:', error);
+                    NodeManager.showErrorNotification('위치 저장에 실패했습니다.', 'error');
+                }
+            } else if (!hasMoved && typeof openEditor === 'function') {
+                openEditor(node);
+            }
+        }
+    }
+
+    function handleMouseMove(e) {
+        if (isDragging) {
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance > dragThreshold) {
+                hasMoved = true;
+                node.x = e.clientX - state.offset.x;
+                node.y = e.clientY - state.offset.y;
+                
+                // DOM 위치 즉시 업데이트 (잔상 방지)
+                div.style.left = node.x + 'px';
+                div.style.top = node.y + 'px';
+                
+                throttledRender();
+            }
+        }
+    }
+
+    // 터치 이벤트 리스너 추가 (passive 옵션 사용)
+    div.addEventListener('touchstart', handleTouchStart, { passive: false });
+    div.addEventListener('touchmove', handleTouchMove, { passive: false });
+    div.addEventListener('touchend', handleTouchEnd);
+}
+
+// 연결선 그리기 함수
+function drawLinks() {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.style.position = 'absolute';
+    svg.style.width = '100%';
+    svg.style.height = '100%';
+    svg.style.pointerEvents = 'none';
+
+    links.forEach(link => {
+        const source = nodes.find(n => n.id === link.source);
+        const target = nodes.find(n => n.id === link.target);
+
+        if (!source || !target) return;
+
+        // 거리 계산
+        const dx = target.x - source.x;
+        const dy = target.y - source.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // 라인 길이 조절을 위한 계산
+        const nodeRadius = 40;
+        const angle = Math.atan2(dy, dx);
+        
+        // 시작점과 끝점을 노드 경계에 맞춤
+        const startX = source.x + Math.cos(angle) * nodeRadius;
+        const startY = source.y + Math.sin(angle) * nodeRadius;
+        const endX = target.x - Math.cos(angle) * nodeRadius;
+        const endY = target.y - Math.sin(angle) * nodeRadius;
+
+        // 라인 스타일 설정
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', startX);
+        line.setAttribute('y1', startY);
+        line.setAttribute('x2', endX);
+        line.setAttribute('y2', endY);
+        line.setAttribute('stroke', '#FFFFFF');
+        
+        // 스케일에 따라 라인 굵기 조정 (최소 2, 최대 4)
+        const lineWidth = Math.max(2, Math.min(4, 2 * (state.transform?.scale || 1)));
+        line.setAttribute('stroke-width', lineWidth.toString());
+
+        // 드래그 중인 링크는 투명도 조정
+        let opacity;
+        if (link.isDragging) {
+            // 드래그 중일 때는 더 투명하게 하지만 완전히 사라지지 않게
+            opacity = 0.3;
+        } else {
+            // 거리에 따른 투명도 설정
+            const maxDistance = 600;
+            const minOpacity = 0.1;
+            opacity = Math.max(minOpacity, 1 - (distance / maxDistance));
+        }
+        
+        line.setAttribute('stroke-opacity', opacity);
+
+        svg.appendChild(line);
+    });
+
+    return svg;
+}
+
+// 초기 위치 설정을 위한 함수
+function initCanvas() {
+    const canvas = document.getElementById('canvas');
+    const canvasSize = 100000;
+    const centerOffset = canvasSize / 2;
+
+    // 캔버스 초기 스타일 설정
+    canvas.style.position = 'absolute';
+    canvas.style.width = `${canvasSize}px`;
+    canvas.style.height = `${canvasSize}px`;
+    canvas.style.left = `${-centerOffset + (window.innerWidth / 2)}px`;
+    canvas.style.top = `${-centerOffset + (window.innerHeight / 2)}px`;
+    canvas.style.transform = 'translate(0, 0) scale(1)';
+    canvas.style.transformOrigin = '50% 50%';
+
+    // 초기 노드들 중앙에 배치하기 위한 오프셋 설정
+    nodes.forEach(node => {
+        node.x += centerOffset;
+        node.y += centerOffset;
+        node.baseX = node.x;
+        node.baseY = node.y;
+    });
+}
+
+// 노드 물리 효과 업데이트 함수 (성능 최적화)
+function updateFloating() {
+    if (!nodes.length || state.floatingEnabled === false) {
+        requestAnimationFrame(updateFloating);
+        return;
+    }
+    
+    state.time += 0.001;
+
+    // 성능 최적화: 클러스터링
+    const clusters = createNodeClusters();
+    updateClusterPhysics(clusters);
+    updateIndividualNodes();
+
+    render();
+    requestAnimationFrame(updateFloating);
+}
+
+// 클러스터 생성 최적화
+function createNodeClusters() {
+    const clusters = [];
+    const processedNodes = new Set();
+    const linkMap = createLinkMap();
+
+    nodes.forEach(node => {
+        if (processedNodes.has(node.id)) return;
+
+        const cluster = new Set();
+        const stack = [node];
+
+        while (stack.length > 0) {
+            const currentNode = stack.pop();
+            if (processedNodes.has(currentNode.id)) continue;
+
+            cluster.add(currentNode);
+            processedNodes.add(currentNode.id);
+
+            // 연결된 노드들 찾기 (Map 사용으로 O(1) 검색)
+            const connectedNodeIds = linkMap.get(currentNode.id) || [];
+            connectedNodeIds.forEach(nodeId => {
+                const connectedNode = nodes.find(n => n.id === nodeId);
+                if (connectedNode && !processedNodes.has(connectedNode.id)) {
+                    stack.push(connectedNode);
+                }
+            });
+        }
+
+        clusters.push(Array.from(cluster));
+    });
+
+    return clusters;
+}
+
+// 링크 맵 생성 (성능 최적화)
+function createLinkMap() {
+    const linkMap = new Map();
+    
+    links.forEach(link => {
+        if (!linkMap.has(link.source)) {
+            linkMap.set(link.source, []);
+        }
+        if (!linkMap.has(link.target)) {
+            linkMap.set(link.target, []);
+        }
+        
+        linkMap.get(link.source).push(link.target);
+        linkMap.get(link.target).push(link.source);
+    });
+    
+    return linkMap;
+}
+
+// 클러스터 물리 업데이트
+function updateClusterPhysics(clusters) {
+    const clusterCenters = clusters.map(cluster => {
+        const centerX = cluster.reduce((sum, node) => sum + node.x, 0) / cluster.length;
+        const centerY = cluster.reduce((sum, node) => sum + node.y, 0) / cluster.length;
+        return { 
+            x: centerX, 
+            y: centerY,
+            radius: calculateClusterRadius(cluster),
+            cluster: cluster
+        };
+    });
+
+    // 클러스터 간 충돌 처리
+    for (let i = 0; i < clusterCenters.length; i++) {
+        for (let j = i + 1; j < clusterCenters.length; j++) {
+            applyClusterRepulsion(clusterCenters[i], clusterCenters[j]);
+        }
+    }
+}
+
+// 클러스터 반발력 적용
+function applyClusterRepulsion(center1, center2) {
+    const dx = center2.x - center1.x;
+    const dy = center2.y - center1.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const minDistance = (center1.radius + center2.radius) * 0.3;
+
+    if (distance < minDistance && distance > 0) {
+        const force = (minDistance - distance) * 0.03;
+        const moveX = (dx / distance) * force;
+        const moveY = (dy / distance) * force;
+
+        // 클러스터 이동
+        center1.cluster.forEach(node => {
+            if (!node.isFixed) {
+                node.x -= moveX;
+                node.y -= moveY;
+            }
+        });
+
+        center2.cluster.forEach(node => {
+            if (!node.isFixed) {
+                node.x += moveX;
+                node.y += moveY;
+            }
+        });
+    }
+}
+
+// 개별 노드 업데이트
+function updateIndividualNodes() {
+    nodes.forEach(node => {
+        if (node.isFixed || node.isEditing || node.isDragging) return;
+
+        // 부유 효과 제거 - 노드를 기본 위치에 고정
+        // const floatX = (Math.sin(state.time * 0.1 + node.phase) * 0.3 +
+        //     Math.sin(state.time * 0.05 + node.phase * 2) * 0.2) * state.scale;
+        // 
+        // const floatY = (Math.cos(state.time * 0.08 + node.phase) * 0.3 +
+        //     Math.sin(state.time * 0.06 + node.phase * 1.5) * 0.2) * state.scale;
+
+        // 물리 법칙 적용 (드래그 중이 아닐 때만)
+        if (!node.isDragging) {
+            applyNodePhysics(node);
+        }
+        
+        // 위치 업데이트 (부유 효과 제거)
+        if (!node.isDragging) {
+            node.x += node.vx; // + floatX * 0.1 제거
+            node.y += node.vy; // + floatY * 0.1 제거
+        }
+    });
+}
+
+// 노드 물리 법칙 적용
+function applyNodePhysics(node) {
+    // 노드 간 충돌 처리 - 더 약한 반발력으로 조정
+    nodes.forEach(otherNode => {
+        if (node === otherNode) return;
+        
+        const dx = otherNode.x - node.x;
+        const dy = otherNode.y - node.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // 최소 거리를 적당히 설정 (노드 겹침 방지하되 너무 강하지 않게)
+        const minDistance = 120; // 180에서 120으로 감소
+        
+        if (distance < minDistance && distance > 0) {
+            const overlap = minDistance - distance;
+            const force = overlap * 0.01; // 반발력 감소 (0.03에서 0.01로)
+            const angle = Math.atan2(dy, dx);
+            
+            // 약한 반발력 적용
+            if (!otherNode.isFixed && !otherNode.isDragging) {
+                otherNode.vx += Math.cos(angle) * force;
+                otherNode.vy += Math.sin(angle) * force;
+            }
+            if (!node.isFixed && !node.isDragging) {
+                node.vx -= Math.cos(angle) * force;
+                node.vy -= Math.sin(angle) * force;
+            }
+        }
+    });
+
+    // 속도 감쇠 - 더 빠른 안정화
+    node.vx *= 0.92; // 0.95에서 0.92로 변경 (더 빠른 정지)
+    node.vy *= 0.92;
+
+    // 최대 속도 제한
+    const maxSpeed = 1; // 2에서 1로 감소
+    const currentSpeed = Math.sqrt(node.vx * node.vx + node.vy * node.vy);
+    if (currentSpeed > maxSpeed) {
+        node.vx = (node.vx / currentSpeed) * maxSpeed;
+        node.vy = (node.vy / currentSpeed) * maxSpeed;
+    }
+}
+
+// 클러스터의 반경을 계산하는 함수
+function calculateClusterRadius(cluster) {
+    if (cluster.length === 0) return 0;
+
+    const centerX = cluster.reduce((sum, node) => sum + node.x, 0) / cluster.length;
+    const centerY = cluster.reduce((sum, node) => sum + node.y, 0) / cluster.length;
+
+    // 가장 멀리 있는 노드까지의 거리 + 여유 공간
+    const maxDistance = cluster.reduce((max, node) => {
+        const dx = node.x - centerX;
+        const dy = node.y - centerY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        return Math.max(max, distance);
+    }, 0);
+
+    return maxDistance + 40 * state.scale;
+}
+
+// render 함수 최적화 (RAF 스케줄링)
+let renderScheduled = false;
+
+function render() {
+    if (renderScheduled) return;
+    
+    renderScheduled = true;
+    requestAnimationFrame(() => {
+        const canvas = document.getElementById('canvas');
+        if (!canvas) {
+            renderScheduled = false;
+            return;
+        }
+
+        // 렌더링할 노드 배열 결정 (window.nodes 우선)
+        const nodesToRender = window.nodes || nodes || [];
+        
+        // 폴더 노드 통계 추가
+        const folderNodes = nodesToRender.filter(n => n && n.isFolder);
+        const regularNodes = nodesToRender.filter(n => n && !n.isFolder);
+        
+        console.log('렌더링 시작:', {
+            windowNodesCount: window.nodes?.length,
+            localNodesCount: nodes?.length,
+            nodesToRenderCount: nodesToRender.length,
+            folderNodesCount: folderNodes.length,
+            regularNodesCount: regularNodes.length,
+            folderNodeTitles: folderNodes.map(n => n.title)
+        });
+
+        // 기존 노드들과 새로운 노드들 비교
+        const existingNodes = new Map();
+        canvas.querySelectorAll('.node').forEach(nodeElement => {
+            const nodeId = nodeElement.getAttribute('data-id');
+            if (nodeId) {
+                existingNodes.set(nodeId, nodeElement);
+            }
+        });
+
+        // 삭제된 노드들 제거
+        existingNodes.forEach((element, nodeId) => {
+            const nodeIdNum = parseFloat(nodeId); // parseInt 대신 parseFloat 사용
+            const nodeExists = nodesToRender.some(n => 
+                n && (n.id === nodeIdNum || n.id.toString() === nodeId)
+            );
+            
+            if (!nodeExists) {
+                console.log('렌더링: DOM에서 노드 제거:', nodeId);
+                element.remove();
+                existingNodes.delete(nodeId);
+            }
+        });
+
+        // 링크 업데이트 (기존 SVG 제거 후 새로 추가)
+        const existingSvg = canvas.querySelector('svg');
+        if (existingSvg) {
+            existingSvg.remove();
+        }
+        canvas.appendChild(drawLinks());
+        
+        // 노드 업데이트 또는 생성
+        nodesToRender.forEach(node => {
+            // 유효한 노드인지 확인 (ID만 확인하도록 완화)
+            if (!node || node.id === null || node.id === undefined || isNaN(node.id)) {
+                console.warn('유효하지 않은 노드 건너뛰기:', {
+                    node: node,
+                    hasId: node?.id !== null && node?.id !== undefined,
+                    idValue: node?.id,
+                    idType: typeof node?.id,
+                    reason: !node ? 'node가 null/undefined' : 'ID가 없거나 NaN'
+                });
+                return;
+            }
+            
+            const nodeId = node.id.toString();
+            const existingElement = existingNodes.get(nodeId);
+            
+            if (existingElement) {
+                // 기존 노드 업데이트 (위치와 내용)
+                existingElement.style.left = node.x + 'px';
+                existingElement.style.top = node.y + 'px';
+                
+                // 제목 업데이트
+                const titleElement = existingElement.querySelector('.title');
+                if (titleElement) {
+                    const truncatedTitle = node.title && node.title.length > 100 
+                        ? node.title.substring(0, 100) + '...' 
+                        : node.title || '';
+                    titleElement.textContent = truncatedTitle;
+                }
+                
+                // 날짜 요소 업데이트 (폴더가 아닌 경우에만)
+                if (!node.isFolder) {
+                    // 기존 날짜 요소 제거 (내부/외부 모두)
+                    const existingDateElement = existingElement.querySelector('.node-date-external, .node-date-internal, .node-date-external-trendy');
+                    if (existingDateElement) {
+                        existingDateElement.remove();
+                    }
+                    
+                    // 새로운 트렌디한 날짜 요소 생성 (날짜가 있는 경우에만)
+                    if (node.date) {
+                        let displayDate = '';
+                        try {
+                            let dateObj = node.date instanceof Date ? node.date : new Date(node.date);
+                            if (!isNaN(dateObj.getTime())) {
+                                displayDate = dateObj.toLocaleDateString('ko-KR', {
+                                    month: 'short',
+                                    day: 'numeric'
+                                });
+                            }
+                        } catch (error) {
+                            console.error('기존 노드 날짜 파싱 오류:', error);
+                        }
+                        
+                        if (displayDate && displayDate !== '') {
+                            const dateElement = document.createElement('div');
+                            dateElement.className = 'node-date-external-trendy';
+                            dateElement.textContent = displayDate;
+                            
+                            // 트렌디한 스타일 적용
+                            dateElement.style.cssText = `
+                                position: absolute !important;
+                                top: calc(100% + 12px) !important;
+                                left: 50% !important;
+                                transform: translateX(-50%) !important;
+                                font-size: 11px !important;
+                                font-weight: 600 !important;
+                                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+                                color: rgba(255, 255, 255, 0.9) !important;
+                                background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05)) !important;
+                                backdrop-filter: blur(10px) !important;
+                                -webkit-backdrop-filter: blur(10px) !important;
+                                border: 1px solid rgba(255, 255, 255, 0.2) !important;
+                                border-radius: 12px !important;
+                                padding: 6px 12px !important;
+                                white-space: nowrap !important;
+                                pointer-events: none !important;
+                                z-index: 1000 !important;
+                                display: flex !important;
+                                align-items: center !important;
+                                justify-content: center !important;
+                                visibility: visible !important;
+                                opacity: 1 !important;
+                                box-shadow: 
+                                    0 4px 16px rgba(0, 0, 0, 0.1),
+                                    0 2px 4px rgba(0, 0, 0, 0.1),
+                                    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+                    0 6px 16px rgba(0, 0, 0, 0.4),
+                    0 3px 6px rgba(0, 0, 0, 0.3),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+                letter-spacing: 1px !important;
+                text-shadow: none !important;
+                min-width: 80px !important;
+                min-height: 24px !important;
+                line-height: 1.2 !important;
+                transform-origin: center !important;
+                                will-change: transform !important;
+                            `;
+                            
+            console.log(`날짜 요소 ${index + 1} 업데이트:`, {
+                text: dateElement.textContent,
+                visible: dateElement.style.visibility,
+                display: dateElement.style.display,
+                opacity: dateElement.style.opacity
+            });
+        });
+        
+        console.log('렌더링 완료:', {
+            totalNodesInDOM: canvas.querySelectorAll('.node').length,
+            folderNodesInDOM: canvas.querySelectorAll('.folder-node').length
+        });
+        
+        renderScheduled = false;
+    });
+}
+
+// 날짜 포맷 함수들
+function formatDate(date) {
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${mm}.${dd}`;
+}
+
+function formatDateToISO(date) {
+    return date.toISOString().split('T')[0];
+}
+
+// 삭제 확인 다이얼로그 함수
+function showDeleteConfirmation(x, y, onConfirm) {
+    const dialog = document.createElement('div');
+    dialog.className = 'delete-confirmation';
+    dialog.style.cssText = `
+        position: fixed;
+        left: ${x}px;
+        top: ${y}px;
+        background: #333;
+        color: white;
+        padding: 16px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 10000;
+        font-size: 14px;
+        min-width: 200px;
+    `;
+    
+    dialog.innerHTML = `
+        <div style="margin-bottom: 12px;">정말 삭제하시겠습니까?</div>
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+            <button class="confirm-btn" style="background: #ff4444; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">삭제</button>
+            <button class="cancel-btn" style="background: #666; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">취소</button>
+        </div>
+    `;
+    
+    dialog.querySelector('.confirm-btn').addEventListener('click', () => {
+        onConfirm();
+        dialog.remove();
+    });
+    
+    dialog.querySelector('.cancel-btn').addEventListener('click', () => {
+        dialog.remove();
+    });
+    
+    document.body.appendChild(dialog);
+    
+    // 5초 후 자동 닫기
+    setTimeout(() => {
+        if (dialog.parentNode) {
+            dialog.remove();
+        }
+    }, 5000);
+}
+
+// 스프레드시트 노드 정리 함수
+async function cleanupInvalidSpreadsheetNodes() {
+    try {
+        console.log('유효하지 않은 스프레드시트 노드 정리 시작');
+        
+        const spreadsheetNodes = nodes.filter(n => n && n.isSpreadsheet);
+        let cleanedCount = 0;
+        
+        for (const node of spreadsheetNodes) {
+            if (!node.id || isNaN(node.id) || node.id === null || node.id === undefined) {
+                // 로컬 배열에서 제거
+                const index = nodes.indexOf(node);
+                if (index > -1) {
+                    nodes.splice(index, 1);
+                    cleanedCount++;
+                }
+                
+                // DOM에서도 제거
+                const element = document.querySelector(`[data-id="${node.id}"]`);
+                if (element) {
+                    element.remove();
+                }
+            }
+        }
+        
+        console.log(`총 ${cleanedCount}개의 유효하지 않은 스프레드시트 노드가 정리되었습니다.`);
+        
+        // Firebase에서도 정리 (필요한 경우)
+        if (window.FirebaseManager && window.FirebaseManager.cleanupInvalidNodes) {
+            await window.FirebaseManager.cleanupInvalidNodes();
+        }
+        
+        return cleanedCount;
+    } catch (error) {
+        console.error('스프레드시트 노드 정리 중 오류:', error);
+        return 0;
+    }
+}
+
+// 트렌디한 날짜 표시 테스트 함수
+window.testTrendyDates = () => {
+    console.log('=== 트렌디한 날짜 표시 테스트 ===');
+    const nodesToUse = window.nodes || nodes || [];
+    const today = new Date().toISOString().split('T')[0];
+    let updatedCount = 0;
+    
+    nodesToUse.forEach(node => {
+        if (!node.isFolder) {
+            node.date = today;
+            updatedCount++;
+            console.log(`노드 ${node.id} (${node.title})에 날짜 ${today} 추가`);
+        }
+    });
+    
+    // 즉시 화면 다시 렌더링
+    render();
+    
+    console.log(`=== 총 ${updatedCount}개 노드에 날짜 추가 완료 ===`);
+    return updatedCount;
+};
+
+// 전역 함수로 노출
+window.NodeManager = NodeManager;
+window.AnimationManager = AnimationManager; 

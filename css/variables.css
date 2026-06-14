@@ -1,0 +1,212 @@
+/* ========================================
+   CSS CUSTOM PROPERTIES (VARIABLES)
+======================================== */
+/*
+   ⚠️ FONT LOADING REQUIREMENT:
+   이 CSS 변수들이 제대로 작동하려면 HTML <head>에 다음 폰트들을 로드해야 합니다:
+   
+   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&family=Noto+Serif+KR:wght@200..900&display=swap" rel="stylesheet">
+   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&display=swap" rel="stylesheet">
+*/
+
+:root {
+    /* Color Palette */
+    --primary-bg: #000000;
+    --primary-text: #ffffff;
+    --secondary-bg: #f8f9fa;
+    --secondary-text: #000000;
+    --accent-color: #007bff;
+    --accent-hover: #0056b3;
+    --success-color: #4caf50;
+    --success-hover: #45a049;
+    --warning-color: #ffe566;
+    --danger-color: #ff6b6b;
+    
+    /* Border & Component Colors */
+    --border-color: #ddd;
+    --border-light: #e0e0e0;
+    --hover-bg: #f0f0f0;
+    --muted-text: #666;
+    --saturday-color: #1e3a8a;
+    --sunday-color: #7f1d1d;
+    
+    /* Input & Background Colors */
+    --input-border: #eee;
+    --input-bg: #f8f9fa;
+    --active-bg: #e9ecef;
+    --popup-border: #ccc;
+    
+    /* Focus & Active States */
+    --accent-shadow: rgba(0, 123, 255, 0.1);
+    --inset-shadow: rgba(0, 0, 0, 0.1);
+    
+    /* Emotion Colors - 기본 색상을 참조하여 중복 제거 */
+    --emotion-yellow: var(--warning-color);  /* #ffe566 */
+    --emotion-red: var(--danger-color);      /* #ff6b6b */
+    --emotion-blue: #4ecdc4;                 /* 독립적인 색상 */
+    --emotion-green: #45b7d1;                /* 독립적인 색상 */
+    
+    /* Spacing System */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 12px;
+    --space-lg: 16px;
+    --space-xl: 20px;
+    --space-2xl: 24px;
+    --space-3xl: 32px;
+    
+    /* Border Radius */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 20px;
+    --radius-full: 50%;
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.2);
+    --shadow-xl: 0 8px 16px rgba(0, 0, 0, 0.3);
+    
+    /* Typography - 폰트 로딩 필요 */
+    --font-family-sans: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-family-serif: 'Noto Serif KR', Georgia, serif;
+    --font-family-mono: 'Fira Code', 'Monaco', 'Consolas', monospace;
+    
+    /* Font Sizes */
+    --text-xs: 12px;
+    --text-sm: 14px;
+    --text-base: 16px;
+    --text-lg: 18px;
+    --text-xl: 20px;
+    --text-2xl: 24px;
+    
+    /* Transitions */
+    --transition-fast: 0.15s ease;
+    --transition-base: 0.2s ease;
+    --transition-slow: 0.3s ease;
+    
+    /* Animation Durations */
+    --twinkle-duration: 3s;
+    
+    /* Layout Dimensions */
+    --panel-width: 280px;
+    --calendar-width: 320px;
+    --canvas-size: 100000px;
+    
+    /* Component Sizes */
+    --node-size: 120px;
+    --folder-node-size: 70px;
+    --fab-size: 50px;
+    --emotion-button-size: 35px;
+    --calendar-day-min-size: 35px;
+    
+    /* Editor Dimensions */
+    --editor-max-width: 600px;
+    --content-input-height: 300px;
+    --format-btn-size: 32px;
+    --color-popup-width: 240px;
+    --size-input-wrapper-width: 65px;
+    --size-input-width: 32px;
+    
+    /* Button Positions */
+    --add-button-top: 300px;
+    --spreadsheet-button-top: 380px;
+    --folder-button-right: 230px;
+    --calendar-button-right: 160px;
+    
+    /* Z-Index Scale */
+    --z-index-dropdown: 1000;
+    --z-index-modal: 1020;
+    --z-index-overlay: 1030;
+    --z-index-tooltip: 1040;
+    --z-index-max: 9999;
+    
+    /* Editor Z-Index */
+    --z-index-color-tool: 1100;
+    --z-index-color-popup: 1200;
+    
+    /* Features - Folder System */
+    --folder-bg: rgba(0, 0, 0, 0.9);
+    --folder-input-bg: rgba(255, 255, 255, 0.9);
+    --folder-input-border: rgba(255, 255, 255, 0.3);
+    --folder-action-bg: rgba(70, 130, 180, 0.6);
+    --folder-action-hover: rgba(70, 130, 180, 0.8);
+    --folder-horizontal-bg: rgba(70, 130, 180, 0.4);
+    --folder-horizontal-hover: rgba(70, 130, 180, 0.6);
+    --folder-horizontal-active: rgba(70, 130, 180, 0.8);
+    --folder-cancel-bg: rgba(0, 0, 0, 0.6);
+    --folder-nested-border: rgba(255, 255, 255, 0.2);
+    
+    /* Features - Context Menu */
+    --context-menu-bg: rgba(0, 0, 0, 0.9);
+    --context-menu-hover: rgba(255, 255, 255, 0.1);
+    --context-delete-hover: rgba(255, 107, 107, 0.1);
+    
+    /* Features - Authentication */
+    --auth-hover-bg: rgba(255, 229, 102, 0.1);
+    --auth-text-color: #333;
+    
+    /* Features - Drag & Drop */
+    --drag-over-bg: #e3f2fd;
+    --drag-over-border: #2196f3;
+    --drag-opacity: 0.5;
+    --drag-scale: 0.95;
+    --drag-accent-bg: rgba(0, 123, 255, 0.1);
+    
+    /* Features - Spreadsheet */
+    --spreadsheet-min-width: 500px;
+    --spreadsheet-cell-height: 30px;
+    --spreadsheet-cell-min-width: 100px;
+    --spreadsheet-header-bg: #f5f5f5;
+    --spreadsheet-focus-bg: #f8f8f8;
+    --spreadsheet-handle-width: 5px;
+    
+    /* Features - Notifications */
+    --notification-max-width: 300px;
+    
+    /* Features - Scrollbar Colors */
+    --scrollbar-track: #f1f1f1;
+    --scrollbar-thumb: #888;
+    --scrollbar-thumb-hover: #555;
+    --scrollbar-width: 8px;
+
+    /* Breakpoints */
+    --breakpoint-sm: 480px;
+    --breakpoint-md: 768px;
+    --breakpoint-lg: 1024px;
+    --breakpoint-xl: 1440px;
+    --breakpoint-2xl: 2560px;
+
+    /* Mobile Specific */
+    --mobile-editor-max-height: 60vh;
+    --mobile-content-height: 150px;
+    --mobile-content-max-height: 25vh;
+    --mobile-calendar-max-height: 45vh;
+    --mobile-folder-max-height: 50vh;
+    --mobile-fab-size: 56px;
+    --mobile-fab-font-size: 32px;
+
+    /* Tablet Specific */
+    --tablet-fab-size: 52px;
+    --tablet-fab-font-size: 30px;
+    --tablet-sidebar-width: 300px;
+    --tablet-editor-width: 85%;
+    --tablet-editor-max-width: 550px;
+
+    /* Desktop Specific */
+    --desktop-sidebar-width: 320px;
+    --desktop-editor-max-width: 800px;
+    --desktop-fab-size: 64px;
+
+    /* High Contrast Mode */
+    --high-contrast-border-width: 3px;
+    --high-contrast-outline-width: 3px;
+    --high-contrast-outline-offset: 2px;
+
+    /* Print */
+    --print-font-size: 12pt;
+    --print-line-height: 1.4;
+    --print-border-width: 2px;
+    --print-margin: 20px;
+} 

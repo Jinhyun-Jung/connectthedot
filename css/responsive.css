@@ -1,0 +1,546 @@
+/* ========================================
+   RESPONSIVE DESIGN - MOBILE FIRST
+======================================== */
+
+/* Mobile Devices */
+@media screen and (max-width: var(--breakpoint-md)) {
+    .desktop-only {
+        display: none !important;
+    }
+    
+    /* 우측 버튼 그룹 모바일 반응형 */
+    .right-button-group {
+        right: var(--space-md) !important;
+        gap: var(--space-md) !important;
+    }
+    
+    .right-button-group button {
+        width: var(--mobile-fab-size) !important;
+        height: var(--mobile-fab-size) !important;
+        font-size: var(--mobile-fab-font-size) !important;
+    }
+    
+    .show-folder-btn,
+    .show-calendar-btn {
+        display: flex;
+    }
+    
+    .calendar-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        height: auto;
+        max-height: var(--mobile-calendar-max-height);
+        border-radius: 0 0 var(--space-lg) var(--space-lg);
+        padding: var(--space-lg);
+        z-index: var(--z-index-dropdown);
+        touch-action: none;
+    }
+    
+    #editor {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100% !important;
+        max-width: none;
+        max-height: var(--mobile-editor-max-height);
+        height: auto;
+        border-radius: var(--space-lg) var(--space-lg) 0 0;
+        transform: none;
+        top: auto;
+        z-index: var(--z-index-modal);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    #contentInput {
+        height: var(--mobile-content-height);
+        max-height: var(--mobile-content-max-height);
+    }
+    
+    .formatting-tools {
+        flex-wrap: wrap;
+        gap: var(--space-xs);
+        padding: var(--space-sm);
+    }
+    
+    .format-btn {
+        width: var(--format-btn-size);
+        height: var(--format-btn-size);
+    }
+    
+    .format-select {
+        min-width: 100px;
+    }
+    
+    .fab {
+        width: var(--mobile-fab-size);
+        height: var(--mobile-fab-size);
+        font-size: var(--mobile-fab-font-size);
+    }
+    
+    .folder-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        height: auto;
+        max-height: var(--mobile-folder-max-height);
+        border-radius: 0 0 var(--space-lg) var(--space-lg);
+        z-index: var(--z-index-dropdown);
+    }
+    
+    #authContainer {
+        position: fixed;
+        right: var(--space-xl);
+        top: var(--space-xl);
+        z-index: var(--z-index-overlay);
+    }
+}
+
+/* Tablet Devices */
+@media screen and (min-width: calc(var(--breakpoint-md) + 1px)) and (max-width: var(--breakpoint-lg)) {
+    .fab {
+        width: var(--tablet-fab-size);
+        height: var(--tablet-fab-size);
+        font-size: var(--tablet-fab-font-size);
+    }
+    
+    .folder-container,
+    .calendar-container {
+        width: var(--tablet-sidebar-width);
+    }
+    
+    #editor {
+        width: var(--tablet-editor-width);
+        max-width: var(--tablet-editor-max-width);
+    }
+}
+
+/* Large Desktop Screens */
+@media screen and (min-width: var(--breakpoint-2xl)) {
+    .folder-container {
+        width: var(--desktop-sidebar-width);
+    }
+    
+    .calendar-container {
+        width: var(--desktop-sidebar-width);
+    }
+    
+    #editor {
+        max-width: var(--desktop-editor-max-width);
+    }
+    
+    .fab {
+        width: var(--desktop-fab-size);
+        height: var(--desktop-fab-size);
+    }
+}
+
+/* Landscape Mode - Mobile */
+@media screen and (orientation: landscape) and (max-height: 600px) {
+    .calendar-container,
+    .folder-container {
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+    
+    #editor {
+        max-height: 80vh;
+    }
+    
+    #contentInput {
+        max-height: 30vh;
+    }
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.5);
+        --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.6);
+        --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.7);
+        --shadow-xl: 0 16px 32px rgba(0, 0, 0, 0.8);
+    }
+
+    .panel {
+        background-color: var(--dark-panel-bg);
+        border-color: var(--dark-border-color);
+    }
+    
+    .calendar-day {
+        background-color: var(--dark-calendar-day-bg);
+        color: var(--dark-text);
+        border-color: var(--dark-border-color);
+    }
+    
+    .calendar-day:hover {
+        background-color: var(--dark-calendar-day-hover);
+    }
+    
+    .weekday-header {
+        color: var(--dark-muted-text);
+    }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+    .node {
+        border-width: var(--high-contrast-border-width);
+    }
+    
+    button:focus,
+    input:focus,
+    textarea:focus {
+        outline: var(--high-contrast-outline-width) solid var(--accent-color);
+        outline-offset: var(--high-contrast-outline-offset);
+    }
+}
+
+/* Print Styles */
+@media print {
+    * {
+        background: transparent !important;
+        color: black !important;
+        box-shadow: none !important;
+        text-shadow: none !important;
+    }
+    
+    body {
+        font-size: var(--print-font-size);
+        line-height: var(--print-line-height);
+    }
+    
+    .no-print,
+    .fab,
+    .show-folder-btn,
+    .show-calendar-btn,
+    #authContainer,
+    .context-menu {
+        display: none !important;
+    }
+    
+    .node {
+        border: var(--print-border-width) solid black;
+        page-break-inside: avoid;
+    }
+    
+    #editor {
+        position: static;
+        transform: none;
+        box-shadow: none;
+        border: 1px solid black;
+        margin: var(--print-margin) 0;
+    }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    
+    .star {
+        animation: none;
+    }
+}
+
+/* Touch Devices */
+@media (hover: none) and (pointer: coarse) {
+    .fab,
+    .format-btn,
+    .folder-button,
+    .calendar-day,
+    .node {
+        cursor: default;
+    }
+    
+    .format-btn,
+    .calendar-day {
+        min-height: 44px;
+        min-width: 44px;
+        padding: var(--space-md);
+    }
+}
+
+/* High DPI Screens */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .node {
+        border-width: 0.5px;
+    }
+    
+    .star {
+        transform: scale(0.8);
+    }
+}
+
+/* ========================================
+   REDUCED MOTION PREFERENCES
+======================================== */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    
+    .star {
+        animation: none;
+    }
+}
+
+/* ========================================
+   HIGH CONTRAST MODE
+======================================== */
+@media (prefers-contrast: high) {
+    :root {
+        --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+        --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.4);
+        --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.5);
+        --shadow-xl: 0 16px 32px rgba(0, 0, 0, 0.6);
+    }
+    
+    .node {
+        border-width: 3px;
+    }
+    
+    button:focus,
+    input:focus,
+    textarea:focus {
+        outline: 3px solid var(--accent-color);
+        outline-offset: 2px;
+    }
+}
+
+/* ========================================
+   PRINT STYLES
+======================================== */
+@media print {
+    * {
+        background: transparent !important;
+        color: black !important;
+        box-shadow: none !important;
+        text-shadow: none !important;
+    }
+    
+    body {
+        font-size: 12pt;
+        line-height: 1.4;
+    }
+    
+    .no-print,
+    .fab,
+    .show-folder-btn,
+    .show-calendar-btn,
+    #authContainer,
+    .context-menu {
+        display: none !important;
+    }
+    
+    .node {
+        border: 2px solid black;
+        page-break-inside: avoid;
+    }
+    
+    #editor {
+        position: static;
+        transform: none;
+        box-shadow: none;
+        border: 1px solid black;
+        margin: 20px 0;
+    }
+}
+
+/* ========================================
+   TABLET SPECIFIC STYLES
+======================================== */
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+    .fab {
+        width: 52px;
+        height: 52px;
+        font-size: 30px;
+    }
+    
+    .folder-container,
+    .calendar-container {
+        width: 300px;
+    }
+    
+    #editor {
+        width: 85%;
+        max-width: 550px;
+    }
+}
+
+/* ========================================
+   DESKTOP LARGE SCREEN STYLES
+======================================== */
+@media screen and (min-width: 1441px) {
+    .folder-container {
+        width: 320px;
+    }
+    
+    .calendar-container {
+        width: 360px;
+        left: 340px;
+    }
+    
+    #editor {
+        max-width: 700px;
+    }
+}
+
+/* ========================================
+   LANDSCAPE ORIENTATION
+======================================== */
+@media screen and (orientation: landscape) and (max-height: 600px) {
+    .calendar-container,
+    .folder-container {
+        max-height: 40vh;
+    }
+    
+    #editor {
+        max-height: 70vh;
+    }
+    
+    #contentInput {
+        height: 120px;
+    }
+}
+
+/* ========================================
+   DARK MODE SUPPORT
+======================================== */
+@media (prefers-color-scheme: dark) {
+    .panel {
+        background: #2d3748;
+        color: white;
+    }
+    
+    .calendar-day {
+        background: #4a5568;
+        color: white;
+        border-color: #718096;
+    }
+    
+    .calendar-day:hover {
+        background: #5a6578;
+    }
+    
+    .weekday-header {
+        color: #a0aec0;
+    }
+}
+
+/* ========================================
+   SMALL SCREEN PORTRAIT
+======================================== */
+@media screen and (max-width: 480px) and (orientation: portrait) {
+    .fab {
+        width: 48px;
+        height: 48px;
+        font-size: 28px;
+    }
+    
+    #addButton {
+        right: var(--space-md);
+    }
+    
+    #spreadsheetButton {
+        right: var(--space-md);
+    }
+    
+    .show-folder-btn,
+    .show-calendar-btn {
+        right: calc(var(--space-md) + 60px);
+    }
+    
+    .formatting-tools {
+        gap: var(--space-xs);
+        padding: var(--space-sm);
+    }
+    
+    .format-btn {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .format-select {
+        min-width: 100px;
+    }
+}
+
+/* ========================================
+   ULTRA-WIDE SCREEN SUPPORT
+======================================== */
+@media screen and (min-width: 2560px) {
+    .folder-container {
+        width: 400px;
+    }
+    
+    .calendar-container {
+        width: 420px;
+        left: 420px;
+    }
+    
+    #editor {
+        max-width: 800px;
+    }
+    
+    .fab {
+        width: 60px;
+        height: 60px;
+        font-size: 36px;
+    }
+}
+
+/* ========================================
+   TOUCH DEVICE OPTIMIZATIONS
+======================================== */
+@media (hover: none) and (pointer: coarse) {
+    .fab,
+    .show-folder-btn,
+    .show-calendar-btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    .node {
+        touch-action: manipulation;
+    }
+    
+    .calendar-day {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    .format-btn {
+        min-height: 40px;
+        min-width: 40px;
+    }
+}
+
+/* ========================================
+   HIGH RESOLUTION DISPLAY
+======================================== */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .node {
+        border-width: 0.5px;
+    }
+    
+    .star {
+        border-radius: 0.5px;
+    }
+} 
