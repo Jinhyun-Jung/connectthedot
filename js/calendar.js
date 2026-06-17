@@ -400,72 +400,85 @@ function addCanvasClickListener() {
 }
 
 // 캘린더 하단 노트 목록 업데이트 함수
-function updateCalendarNotesList(selectedDateStr) {
+// 캘린더 하단 노트 타임라인: 오늘을 중심으로 전체 노드를 날짜순으로, 미지정은 맨 위
+function updateCalendarNotesList(focusDateStr) {
     const notesList = document.querySelector('.calendar-notes-list');
     const notesTitle = document.querySelector('.calendar-notes-title');
-
     if (!notesList) return;
 
-    // 제목 업데이트
-    const selectedDate = new Date(selectedDateStr);
-    const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
-    if (notesTitle) {
-        notesTitle.textContent = `${selectedDate.getMonth() + 1}/${selectedDate.getDate()} (${dayNames[selectedDate.getDay()]}) 노트`;
-    }
+    const todayStr = formatDateToISO(new Date());
+    const focus = focusDateStr || todayStr;
+    if (notesTitle) notesTitle.textContent = '노트 타임라인';
 
-    // 목록 초기화
     notesList.innerHTML = '';
 
-    // 해당 날짜의 노드들 가져오기
-    const dateNodes = nodes.filter(node => node.date === selectedDateStr && !node.isFolder);
+    const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+    const all = (window.nodes || nodes || []).filter(n => n && !n.isFolder);
+    const undated = all.filter(n => !n.date);
+    const dated = all.filter(n => n.date).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 
-    if (dateNodes.length === 0) {
-        // 빈 상태 + 새 노트 추가 버튼
-        const emptyMsg = document.createElement('div');
-        emptyMsg.className = 'calendar-notes-empty';
-        emptyMsg.textContent = '이 날짜에 노트가 없습니다';
-        notesList.appendChild(emptyMsg);
-    } else {
-        // 노트 목록 표시
-        dateNodes.forEach(node => {
-            const noteItem = document.createElement('div');
-            noteItem.className = 'calendar-note-item';
-
-            const folderColor = typeof getFolderColor === 'function'
-                ? getFolderColor(node.folder || '/')
-                : '#3b82f6';
-
-            noteItem.innerHTML = `
-                <div class="note-title">${node.title || '제목 없음'}</div>
-                <div class="note-preview">${(node.content || '').substring(0, 50)}${(node.content || '').length > 50 ? '...' : ''}</div>
-                <div class="note-folder">
-                    <span class="note-folder-badge" style="background: ${folderColor}20; color: ${folderColor};">${node.folder || '/'}</span>
-                </div>
-            `;
-
-            noteItem.addEventListener('click', () => {
-                if (typeof openEditor === 'function') {
-                    openEditor(node);
-                }
-            });
-
-            notesList.appendChild(noteItem);
+    function buildNoteItem(node) {
+        const item = document.createElement('div');
+        item.className = 'calendar-note-item';
+        const folderColor = typeof getFolderColor === 'function' ? getFolderColor(node.folder || '/') : '#3b82f6';
+        const folderLabel = (node.folder && node.folder !== '/') ? node.folder.split('/').filter(Boolean).pop() : '우주';
+        // 제목(왼쪽) + 폴더 배지(오른쪽) 1행
+        item.innerHTML = `
+            <span class="note-title">${node.title || '제목 없음'}</span>
+            <span class="note-folder-badge" style="background:${folderColor}20;color:${folderColor};">${folderLabel}</span>
+        `;
+        // 클릭: 에디터 대신 캔버스에서 해당 노드를 가운데로 이동 + 반짝임
+        item.addEventListener('click', () => {
+            if (typeof locateNodeOnCanvas === 'function') locateNodeOnCanvas(node);
+            else if (typeof openEditor === 'function') openEditor(node);
         });
+        // 더블클릭: 에디터 열기
+        item.addEventListener('dblclick', () => { if (typeof openEditor === 'function') openEditor(node); });
+        return item;
     }
 
-    // 새 노트 추가 버튼
-    const addBtn = document.createElement('button');
-    addBtn.className = 'calendar-add-note-btn';
-    addBtn.innerHTML = '+ 새 노트 추가';
-    addBtn.addEventListener('click', async () => {
-        const newNode = await createNewNodeForDate(selectedDateStr);
-        if (typeof openEditor === 'function') {
-            openEditor(newNode);
+    // 날짜 미지정 노드: 맨 상단
+    if (undated.length) {
+        const h = document.createElement('div');
+        h.className = 'cal-tl-header undated';
+        h.textContent = `날짜 미지정 (${undated.length})`;
+        notesList.appendChild(h);
+        undated.forEach(n => notesList.appendChild(buildNoteItem(n)));
+    }
+
+    // 날짜별 그룹 (오름차순)
+    let lastDate = null;
+    dated.forEach(n => {
+        if (n.date !== lastDate) {
+            lastDate = n.date;
+            const d = new Date(n.date);
+            const dh = document.createElement('div');
+            dh.className = 'cal-tl-header' + (n.date === todayStr ? ' today' : '');
+            dh.dataset.date = n.date;
+            dh.textContent = `${d.getMonth() + 1}/${d.getDate()} (${dayNames[d.getDay()]})` + (n.date === todayStr ? ' · 오늘' : '');
+            notesList.appendChild(dh);
         }
-        render();
-        updateCalendarNotesList(selectedDateStr);
+        notesList.appendChild(buildNoteItem(n));
     });
-    notesList.appendChild(addBtn);
+
+    if (!undated.length && !dated.length) {
+        const empty = document.createElement('div');
+        empty.className = 'calendar-notes-empty';
+        empty.textContent = '노트가 없습니다';
+        notesList.appendChild(empty);
+        return;
+    }
+
+    // 오늘(또는 선택 날짜)을 목록 가운데로 스크롤 (동기 처리 - 비활성 탭에서도 동작)
+    const headerArr = Array.from(notesList.querySelectorAll('.cal-tl-header[data-date]'));
+    const target = headerArr.find(h => h.dataset.date === focus)
+        || headerArr.find(h => h.dataset.date >= focus)
+        || headerArr[headerArr.length - 1];
+    if (target) {
+        const lr = notesList.getBoundingClientRect();
+        const tr = target.getBoundingClientRect();
+        notesList.scrollTop += (tr.top - lr.top) - (notesList.clientHeight / 2) + (tr.height / 2);
+    }
 }
 
 // 날짜 선택 메인 함수 (통합 패널 버전)

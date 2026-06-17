@@ -9,9 +9,11 @@
 }
 
 .folder-path {
-    margin-bottom: var(--space-sm);
-    color: var(--primary-text);
-    font-size: var(--text-xs);
+    margin-bottom: 8px;
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
 }
 
 .folder-buttons {
@@ -285,7 +287,7 @@
     padding: 3px 6px;
     margin: 0;
     border-radius: var(--radius-sm);
-    cursor: move;
+    cursor: pointer;
     transition: background-color var(--transition-base);
     white-space: nowrap;
     font-family: inherit;
@@ -295,10 +297,90 @@
     min-height: 22px;
 }
 
+/* 드래그앤드롭 시각 피드백 */
+.folder-item.dragging,
+.node-item.dragging {
+    opacity: 0.45;
+}
+
+.folder-item.drop-target {
+    background-color: rgba(76, 110, 245, 0.16);
+    box-shadow: inset 0 0 0 2px #4C6EF5;
+}
+
+/* 노드 앞 체크박스 */
+.node-item .node-check {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 15px;
+    height: 15px;
+    margin: 0 6px 0 0;
+    flex-shrink: 0;
+    border: 1.5px solid #b5b9c2;
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.node-item .node-check:hover {
+    border-color: #111;
+}
+
+.node-item .node-check:checked {
+    background: #111;
+    border-color: #111;
+}
+
+.node-item .node-check:checked::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 1px;
+    width: 4px;
+    height: 8px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.node-item.checked .node-name {
+    text-decoration: line-through;
+    color: #aab0bc;
+}
+
+/* 완료 처리 시 캔버스 노드가 사라지는 효과 */
+.node.node-vanish {
+    animation: nodeVanish 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    pointer-events: none;
+    z-index: 9998 !important;
+}
+
+@keyframes nodeVanish {
+    0%   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    35%  { opacity: 1; transform: translate(-50%, -50%) scale(1.12) rotate(-2deg); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(0.2) rotate(8deg); }
+}
+
+/* 폴더뷰에서 선택한 노드를 캔버스에서 강조(반짝임) */
+.node.locate-twinkle {
+    animation: nodeLocateTwinkle 1.6s ease-in-out;
+    z-index: 9999 !important;
+}
+
+@keyframes nodeLocateTwinkle {
+    0%   { filter: drop-shadow(0 0 0 rgba(255, 210, 63, 0)); }
+    15%  { filter: drop-shadow(0 0 22px rgba(255, 210, 63, 0.95)); transform: translate(-50%, -50%) scale(1.18); }
+    35%  { filter: drop-shadow(0 0 6px rgba(255, 210, 63, 0.5)); transform: translate(-50%, -50%) scale(1.0); }
+    55%  { filter: drop-shadow(0 0 22px rgba(255, 210, 63, 0.95)); transform: translate(-50%, -50%) scale(1.12); }
+    100% { filter: drop-shadow(0 0 0 rgba(255, 210, 63, 0)); transform: translate(-50%, -50%) scale(1.0); }
+}
+
 .node-item {
     display: flex;
     align-items: center;
-    padding: 3px 6px;
+    padding: 3px 6px 3px 22px;
     margin: 0;
     border-radius: var(--radius-sm);
     cursor: pointer;
@@ -334,17 +416,35 @@
 }
 
 .folder-count {
-    background: #eee;
-    padding: 0 6px;
-    border-radius: 8px;
+    background: var(--login-yellow, #FFD23F);
+    border: 1.5px solid #111;
+    padding: 0 7px;
+    border-radius: 999px;
     font-size: 11px;
-    line-height: 1.5;
-    color: #666;
+    font-weight: 700;
+    line-height: 1.4;
+    color: #111;
     margin-left: 4px;
 }
 
 .folder-item.active {
-    background-color: #e3f2fd;
+    background-color: rgba(255, 210, 63, 0.45);
+}
+
+/* 아카이브 항목 - 맨 아래, 구분선으로 분리 */
+.folder-item.archive-item {
+    margin-top: 8px;
+    border-top: 2px solid rgba(17, 17, 17, 0.18);
+    border-radius: 0;
+    font-weight: 800;
+}
+
+.folder-item.active .folder-name {
+    font-weight: 800;
+}
+
+.folder-name {
+    font-weight: 600;
 }
 
 /* Folder button group styling */
@@ -478,13 +578,15 @@
 ======================================== */
 .context-menu {
     position: fixed;
-    background-color: var(--context-menu-bg);
-    border-radius: var(--radius-md);
-    padding: var(--space-xs);
-    min-width: 150px;
-    box-shadow: var(--shadow-lg);
+    background: #ffffff;
+    border: 2.5px solid #111111;
+    border-radius: 12px;
+    padding: 6px;
+    min-width: 172px;
+    box-shadow: 5px 5px 0 #111111;
     z-index: var(--z-index-max);
     display: none;
+    font-family: 'Paperlogy', 'Pretendard', sans-serif;
 }
 
 .context-menu-item {
@@ -515,49 +617,78 @@
     margin: var(--space-xs) 0;
 }
 
-/* 기본 삭제 버튼 스타일 */
-.context-menu .delete-btn {
-    display: block;
+/* ===== 우클릭 메뉴 버튼 (hub 테마 공통) ===== */
+.context-menu button {
+    display: flex;
+    align-items: center;
+    gap: 9px;
     width: 100%;
-    padding: 8px 16px;
-    background: #ff4444;
-    color: white;
+    padding: 9px 12px;
+    background: transparent;
+    color: #111111;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
+    font-family: 'Paperlogy', sans-serif;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
+    text-align: left;
     cursor: pointer;
-    transition: all 0.2s ease;
-    font-family: var(--font-family-sans);
+    transition: background 0.12s ease, transform 0.1s ease;
+}
+
+.context-menu button + button {
+    margin-top: 2px;
+}
+
+.context-menu button:hover {
+    background: #f1f0ea;
+}
+
+.context-menu button:active {
+    transform: scale(0.98);
+}
+
+/* 메뉴 아이콘 */
+.context-menu .ctx-ico {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.context-menu .ctx-ico svg {
+    width: 17px;
+    height: 17px;
+    display: block;
+}
+
+/* 완료(체크) - 노랑 강조 */
+.context-menu .check-node-btn {
+    background: var(--login-yellow, #FFD23F);
+    font-weight: 700;
+}
+
+.context-menu .check-node-btn:hover {
+    background: #ffd95e;
+}
+
+/* 삭제 - 코럴 강조 */
+.context-menu .delete-btn {
+    background: #FF9CA8;
+    font-weight: 700;
 }
 
 .context-menu .delete-btn:hover {
-    background: #ff6666;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(255, 68, 68, 0.3);
+    background: #ff8190;
 }
 
-/* 이름 변경 버튼 스타일 */
-.context-menu .rename-btn {
-    display: block;
-    width: 100%;
-    padding: 8px 16px;
-    background: #4CAF50;
-    color: white;
+/* 구분선 */
+.context-menu-divider,
+.context-menu-separator {
+    height: 2px;
+    background: rgba(17, 17, 17, 0.15);
+    margin: 5px 4px;
     border: none;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-family: var(--font-family-sans);
-    margin-bottom: 4px;
-}
-
-.context-menu .rename-btn:hover {
-    background: #66BB6A;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
 }
 
 /* 새로운 삭제 확인 UI */

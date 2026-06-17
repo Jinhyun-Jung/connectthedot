@@ -205,9 +205,9 @@
     top: 0;
     left: 0;
     bottom: 0;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
+    background: #ffffff;
     border-radius: 0;
+    border-right: 3px solid var(--login-ink, #111);
     width: var(--panel-width);
     height: 100vh;
     max-height: 100vh;
@@ -215,8 +215,9 @@
     padding: 0;
     overflow: hidden;
     z-index: 1000;
-    box-shadow: 2px 0 16px rgba(0, 0, 0, 0.15);
-    color: #000000;
+    box-shadow: 5px 0 0 rgba(17, 17, 17, 0.06);
+    color: #111111;
+    font-family: 'Paperlogy', 'Pretendard', system-ui, sans-serif;
     display: flex;
     flex-direction: column;
     transition:
@@ -263,12 +264,13 @@
 
 /* 폴더뷰 타이틀 */
 .folder-view-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: #333;
+    font-family: 'Paperlogy', sans-serif;
+    font-size: 16px;
+    font-weight: 800;
+    color: #111;
     cursor: pointer;
     padding: 4px 8px;
-    border-radius: 4px;
+    border-radius: 6px;
     transition: background 0.2s;
 }
 

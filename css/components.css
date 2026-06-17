@@ -374,39 +374,77 @@
     width: var(--fab-size) !important;
     height: var(--fab-size) !important;
     border-radius: var(--radius-full) !important;
-    border: none !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
     cursor: pointer !important;
-    font-size: 24px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    transition: all var(--transition-base) !important;
-    box-shadow: var(--shadow-lg) !important;
-    color: white !important;
+    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.22s ease,
+                background 0.22s ease !important;
+    color: #fff !important;
     position: static !important;
+    padding: 0 !important;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* 라인 아이콘 공통 */
+.right-button-group button svg {
+    width: 22px !important;
+    height: 22px !important;
+    stroke: currentColor !important;
+    fill: none !important;
+    pointer-events: none;
 }
 
 .right-button-group button:hover {
-    transform: scale(1.1) !important;
-    box-shadow: var(--shadow-xl) !important;
+    transform: translateY(-3px) scale(1.06) !important;
 }
 
-/* 개별 버튼 색상 */
+.right-button-group button:active {
+    transform: translateY(-1px) scale(0.97) !important;
+}
+
+/* 개별 버튼 색상 - 세련된 모던 톤 + 컬러 그림자 */
 .right-button-group #addButton {
-    background: #14213D !important;
+    background: #4C6EF5 !important;        /* 인디고 - 에디터 */
+    box-shadow: 0 8px 20px rgba(76, 110, 245, 0.38) !important;
+}
+.right-button-group #addButton:hover {
+    box-shadow: 0 12px 26px rgba(76, 110, 245, 0.52) !important;
+}
+
+.right-button-group #aiMindmapButton {
+    background: #9775FA !important;        /* 바이올렛 - AI */
+    box-shadow: 0 8px 20px rgba(151, 117, 250, 0.38) !important;
+}
+.right-button-group #aiMindmapButton:hover {
+    box-shadow: 0 12px 26px rgba(151, 117, 250, 0.52) !important;
 }
 
 .right-button-group #spreadsheetButton {
-    background: var(--success-color) !important;
+    background: #12B886 !important;        /* 에메랄드 - 표 */
+    box-shadow: 0 8px 20px rgba(18, 184, 134, 0.38) !important;
+}
+.right-button-group #spreadsheetButton:hover {
+    box-shadow: 0 12px 26px rgba(18, 184, 134, 0.52) !important;
 }
 
 .right-button-group .show-folder-btn {
-    background: #FCA311 !important;
+    background: #FAB005 !important;        /* 앰버 - 폴더 */
+    box-shadow: 0 8px 20px rgba(250, 176, 5, 0.4) !important;
+}
+.right-button-group .show-folder-btn:hover {
+    box-shadow: 0 12px 26px rgba(250, 176, 5, 0.55) !important;
 }
 
 .right-button-group .show-calendar-btn {
-    background: #E5E5E5 !important;
-    color: #333 !important;
+    background: #FA5252 !important;        /* 로즈 - 캘린더 */
+    color: #fff !important;
+    box-shadow: 0 8px 20px rgba(250, 82, 82, 0.38) !important;
+}
+.right-button-group .show-calendar-btn:hover {
+    box-shadow: 0 12px 26px rgba(250, 82, 82, 0.52) !important;
 }
 
 /* 기존 모바일 버튼 그룹 숨기기 */
@@ -460,17 +498,30 @@ button[style*="position: fixed"]:not(.right-button-group button) {
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
+    bottom: 0 !important;
     background: #ffffff !important;
     border-radius: 0 !important;
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1) !important;
+    box-shadow: 2px 0 16px rgba(0, 0, 0, 0.15) !important;
     overflow: hidden !important;
-    width: 320px !important;
-    min-width: 320px !important;
-    height: calc(100vh - 50px) !important;
-    max-height: calc(100vh - 50px) !important;
+    width: var(--panel-width) !important;
+    min-width: var(--panel-width) !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
     display: flex !important;
     flex-direction: column !important;
     z-index: 1000 !important;
+    padding: 0 !important;
+    border-right: 3px solid #111111 !important;
+    box-shadow: 5px 0 0 rgba(17, 17, 17, 0.06) !important;
+    font-family: 'Paperlogy', 'Pretendard', system-ui, sans-serif !important;
+    transition: transform var(--transition-slow), opacity var(--transition-slow) !important;
+}
+
+/* 캘린더뷰: 폴더뷰처럼 왼쪽에서 슬라이딩 */
+.calendar-container.hidden {
+    transform: translateX(-100%) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
 }
 
 /* 캘린더 헤더 */
@@ -494,9 +545,10 @@ button[style*="position: fixed"]:not(.right-button-group button) {
 
 /* 월 표시 */
 #currentMonth {
-    font-size: 16px;
-    font-weight: 700;
-    color: #1a1a1a;
+    font-family: 'Paperlogy', sans-serif;
+    font-size: 17px;
+    font-weight: 800;
+    color: #111;
     flex: 1;
     text-align: center;
 }
@@ -524,24 +576,27 @@ button[style*="position: fixed"]:not(.right-button-group button) {
 
 /* 닫기 버튼 */
 .calendar-close-btn {
-    background: transparent !important;
-    border: none;
-    color: #999;
+    background: #fff !important;
+    border: 2px solid #111 !important;
+    color: #111;
     width: 28px;
     height: 28px;
-    border-radius: 4px;
+    border-radius: 8px;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 15px;
+    font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
+    box-shadow: 2px 2px 0 #111;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
 }
 
 .calendar-close-btn:hover {
-    background: #f5f5f5 !important;
-    color: #666;
-    transform: none;
+    background: #FF9CA8 !important;
+    color: #111;
+    transform: translate(2px, 2px);
+    box-shadow: 0 0 0 #111;
 }
 
 /* 캘린더 상단 영역 (헤더 + 그리드) - 전체의 절반 */
@@ -623,29 +678,29 @@ button[style*="position: fixed"]:not(.right-button-group button) {
     transform: translateX(-50%);
     width: 5px;
     height: 5px;
-    background: #3b82f6;
+    background: #111111;
     border-radius: 50%;
 }
 
-/* 선택된 날짜 - 사각형 */
+/* 선택된 날짜 - 사각형 (hub: 검정) */
 .calendar-day.selected {
-    background: #3b82f6 !important;
+    background: #111111 !important;
     color: #ffffff !important;
 }
 
 .calendar-day.selected::after {
-    background: #ffffff;
+    background: #FFD23F;
 }
 
-/* 오늘 날짜 - 사각형 테두리 */
+/* 오늘 날짜 - 노란 배경 + 검정 테두리 */
 .calendar-day.today {
-    background: #fff8e6;
-    color: #1a1a1a;
-    font-weight: 700;
+    background: #FFF3CC;
+    color: #111111;
+    font-weight: 800;
     border: none;
     border-right: 1px solid #eee;
     border-bottom: 1px solid #eee;
-    box-shadow: inset 0 0 0 2px #f59e0b;
+    box-shadow: inset 0 0 0 2px #111111;
 }
 
 .calendar-day.today:nth-child(7n) {
@@ -653,7 +708,7 @@ button[style*="position: fixed"]:not(.right-button-group button) {
 }
 
 .calendar-day.today.selected {
-    background: #3b82f6 !important;
+    background: #111111 !important;
     color: #ffffff !important;
     box-shadow: none;
 }
@@ -683,7 +738,7 @@ button[style*="position: fixed"]:not(.right-button-group button) {
     flex: 1;
     display: flex;
     flex-direction: column;
-    border-top: 1px solid #eee;
+    border-top: 3px solid #111111;
     background: #fafafa;
     min-height: 0;
     overflow: hidden;
@@ -698,16 +753,17 @@ button[style*="position: fixed"]:not(.right-button-group button) {
 }
 
 .calendar-notes-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: #333;
+    font-family: 'Paperlogy', sans-serif;
+    font-size: 14px;
+    font-weight: 800;
+    color: #111;
 }
 
 /* 노트 목록 */
 .calendar-notes-list {
     flex: 1;
     overflow-y: auto;
-    padding: 10px;
+    padding: 0 10px 10px;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -721,27 +777,60 @@ button[style*="position: fixed"]:not(.right-button-group button) {
     font-size: 14px;
 }
 
-/* 노트 아이템 */
+/* 타임라인 날짜 헤더 */
+.cal-tl-header {
+    font-size: 12px;
+    font-weight: 700;
+    color: #555;
+    padding: 8px 8px 6px;
+    margin-top: 4px;
+    border-bottom: 1px solid #e6e6e6;
+    position: sticky;
+    top: 0;
+    background: #fafafa;
+    z-index: 2;
+}
+
+.cal-tl-header:first-child {
+    margin-top: 0;
+}
+
+.cal-tl-header.today {
+    color: #111;
+    border-bottom-color: #111;
+    border-bottom-width: 2px;
+}
+
+.cal-tl-header.undated {
+    color: #b3791b;
+    border-bottom-color: #f0d9a8;
+}
+
+/* 노트 아이템 - 제목(좌) + 폴더 배지(우) 한 줄 */
 .calendar-note-item {
     background: #ffffff;
     border: 1px solid #e0e0e0;
     border-radius: 8px;
-    padding: 12px;
+    padding: 9px 12px;
     cursor: pointer;
     transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .calendar-note-item:hover {
-    background: #f8f9fa;
-    border-color: #3b82f6;
-    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+    background: #fffdf3;
+    border-color: #111111;
+    box-shadow: 2px 2px 0 rgba(17, 17, 17, 0.12);
 }
 
 .calendar-note-item .note-title {
+    flex: 1;
+    min-width: 0;
     font-size: 14px;
     font-weight: 600;
     color: #1a1a1a;
-    margin-bottom: 4px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -766,10 +855,13 @@ button[style*="position: fixed"]:not(.right-button-group button) {
 
 .calendar-note-item .note-folder-badge {
     display: inline-block;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 10px;
-    font-weight: 500;
+    flex-shrink: 0;
+    margin-left: auto;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
 }
 
 /* 새 노트 추가 버튼 */
@@ -829,26 +921,28 @@ button[style*="position: fixed"]:not(.right-button-group button) {
     box-shadow: 0 4px 8px rgba(102, 126, 234, 0.2);
 }
 
-/* 폴더 닫기 버튼 (헤더 내부) - 빨간색 배경, 흰색 텍스트 */
+/* 폴더 닫기 버튼 (헤더 내부) - hub 테마 */
 .folder-close-btn {
-    background: rgba(220, 53, 69, 0.7) !important;
-    border: none;
-    color: #ffffff !important;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
+    background: #fff !important;
+    border: 2px solid #111 !important;
+    color: #111 !important;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
     cursor: pointer;
-    font-size: 16px;
-    font-weight: bold;
+    font-size: 15px;
+    font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.3s ease;
+    box-shadow: 2px 2px 0 #111;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
 }
 
 .folder-close-btn:hover {
-    background: rgba(220, 53, 69, 0.9) !important;
-    transform: scale(1.1);
+    background: #FF9CA8 !important;
+    transform: translate(2px, 2px);
+    box-shadow: 0 0 0 #111;
 }
 
 /* Additional button states */
@@ -865,29 +959,46 @@ button[style*="position: fixed"]:not(.right-button-group button) {
 /* 에디터 우측 상단 닫기 버튼 */
 .editor-close-btn {
     position: absolute;
-    top: 15px;
-    right: 15px;
-    width: 30px;
-    height: 30px;
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid #ddd;
-    border-radius: 50%;
+    top: 18px;
+    right: 18px;
+    width: 32px;
+    height: 32px;
+    background: #ffffff;
+    border: 2px solid #111111;
+    border-radius: 9px;
     cursor: pointer;
-    font-size: 16px;
-    font-weight: bold;
-    color: #666;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1;
+    color: #111111;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.3s ease;
+    box-shadow: 3px 3px 0 #111111;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease, color 0.12s ease;
     z-index: 1000;
 }
 
 .editor-close-btn:hover {
-    background: #ff4757;
-    color: white;
-    border-color: #ff4757;
-    transform: scale(1.1);
+    background: #FF9CA8;
+    color: #111111;
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0 #111111;
+}
+
+/* 모든 닫기(×) 버튼 글리프 정중앙 정렬 */
+.tab-close,
+.calendar-close-btn,
+.folder-close-btn,
+.mobile-table-close,
+.ai-modal-close,
+.spreadsheet-close-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: 1 !important;
+    text-align: center;
+    padding: 0 !important;
 }
 
 /* 스프레드시트 우측 상단 닫기 버튼 */
@@ -918,6 +1029,17 @@ button[style*="position: fixed"]:not(.right-button-group button) {
     transform: scale(1.1);
 }
 
+/* ============================================
+   로그인 화면 - hub.html 뉴브루탈리즘 테마
+   크림 종이 배경 + 점무늬 / 검은 테두리 / 하드 그림자 / 노란 포인트
+   ============================================ */
+:root {
+    --login-ink: #111111;
+    --login-paper: #FBF3E4;
+    --login-yellow: #FFD23F;   /* connectthedot 카드 색 */
+    --login-coral: #FF9CA8;
+}
+
 /* 로그인 모달 배경 */
 .login-modal {
     position: fixed;
@@ -925,12 +1047,18 @@ button[style*="position: fixed"]:not(.right-button-group button) {
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-color: var(--login-paper);
+    background-image: radial-gradient(rgba(60, 60, 60, .16) 1.3px, transparent 1.3px);
+    background-size: 26px 26px;
+    background-position: -13px -13px;
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 10000;
-    animation: fadeIn 0.5s ease;
+    animation: fadeIn 0.4s ease;
+    font-family: 'Paperlogy', 'Pretendard', system-ui, sans-serif;
+    word-break: keep-all;
+    -webkit-font-smoothing: antialiased;
 }
 
 .login-modal.hidden {
@@ -939,65 +1067,102 @@ button[style*="position: fixed"]:not(.right-button-group button) {
 
 /* 로그인 컨테이너 */
 .login-container {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
+    background: #ffffff;
+    border: 3px solid var(--login-ink);
     border-radius: 20px;
-    padding: 40px;
+    padding: 38px 34px 30px;
     width: 100%;
-    max-width: 400px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-    animation: slideUp 0.5s ease;
+    max-width: 410px;
+    box-shadow: 9px 9px 0 var(--login-ink);
+    animation: slideUp 0.4s ease;
 }
 
 /* 로그인 헤더 */
 .login-header {
     text-align: center;
-    margin-bottom: 30px;
+    margin-bottom: 26px;
+}
+
+.login-tag {
+    display: inline-block;
+    background: var(--login-ink);
+    color: var(--login-paper);
+    font-family: 'Paperlogy', sans-serif;
+    font-weight: 800;
+    font-size: 11px;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    padding: 6px 12px;
+    border-radius: 7px;
+    margin-bottom: 18px;
+    box-shadow: 3px 3px 0 rgba(17, 17, 17, .18);
+}
+
+.login-logo {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 16px;
+    border-radius: 16px;
+    background: var(--login-ink);
+    border: 3px solid var(--login-ink);
+    box-shadow: 4px 4px 0 var(--login-ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-logo svg {
+    width: 36px;
+    height: 36px;
+    display: block;
 }
 
 .login-header h1 {
-    font-size: 32px;
-    font-weight: 700;
-    color: #333;
-    margin: 0 0 10px 0;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    font-family: 'Paperlogy', sans-serif;
+    font-size: 34px;
+    font-weight: 900;
+    letter-spacing: -.02em;
+    color: var(--login-ink);
+    margin: 0 0 8px 0;
+    -webkit-text-fill-color: var(--login-ink);
 }
 
 .login-header p {
-    color: #666;
+    color: #444;
     font-size: 14px;
+    font-weight: 500;
     margin: 0;
 }
 
 /* 로그인 탭 */
 .login-tabs {
     display: flex;
-    margin-bottom: 20px;
-    border-radius: 10px;
-    background: #f5f5f5;
+    margin-bottom: 22px;
+    border-radius: 12px;
+    background: var(--login-paper);
+    border: 2.5px solid var(--login-ink);
     padding: 4px;
+    gap: 4px;
 }
 
 .login-tab {
     flex: 1;
-    padding: 12px;
+    padding: 11px;
     border: none;
     background: transparent;
+    font-family: 'Paperlogy', sans-serif;
     font-size: 14px;
-    font-weight: 500;
-    color: #666;
+    font-weight: 800;
+    color: var(--login-ink);
     border-radius: 8px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.15s ease;
 }
 
 .login-tab.active {
-    background: white;
-    color: #333;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    background: var(--login-ink);
+    color: #fff;
+    box-shadow: none;
 }
 
 /* 폼 스타일 */
@@ -1011,64 +1176,82 @@ button[style*="position: fixed"]:not(.right-button-group button) {
 
 .input-group {
     position: relative;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
 }
 
 .input-group input {
     width: 100%;
-    padding: 16px 20px 16px 50px;
-    border: 2px solid #e1e1e1;
-    border-radius: 12px;
+    padding: 15px 18px 15px 48px;
+    border: 2.5px solid var(--login-ink);
+    border-radius: 11px;
     font-size: 16px;
-    background: white;
-    transition: all 0.3s ease;
+    font-family: 'Pretendard', system-ui, sans-serif;
+    font-weight: 500;
+    background: #fff;
+    color: var(--login-ink);
+    transition: box-shadow 0.12s ease, transform 0.12s ease;
     box-sizing: border-box;
+}
+
+.input-group input::placeholder {
+    color: #9a9488;
 }
 
 .input-group input:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    box-shadow: none;
 }
 
 .input-icon {
     position: absolute;
-    left: 16px;
+    left: 14px;
     top: 50%;
     transform: translateY(-50%);
-    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     pointer-events: none;
+}
+
+.input-icon svg {
+    width: 20px;
+    height: 20px;
+    display: block;
 }
 
 /* 제출 버튼 */
 .auth-submit-btn {
     width: 100%;
-    padding: 16px;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: white;
-    border: none;
-    border-radius: 12px;
+    padding: 15px;
+    background: var(--login-yellow);
+    color: var(--login-ink);
+    border: 3px solid var(--login-ink);
+    border-radius: 11px;
+    font-family: 'Paperlogy', sans-serif;
     font-size: 16px;
-    font-weight: 600;
+    font-weight: 800;
     cursor: pointer;
-    transition: all 0.3s ease;
-    margin-bottom: 20px;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    margin-top: 4px;
+    margin-bottom: 18px;
+    box-shadow: 5px 5px 0 var(--login-ink);
 }
 
 .auth-submit-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+    transform: translate(3px, 3px);
+    box-shadow: 2px 2px 0 var(--login-ink);
 }
 
 .auth-submit-btn:active {
-    transform: translateY(0);
+    transform: translate(5px, 5px);
+    box-shadow: 0 0 0 var(--login-ink);
 }
 
 /* 구분선 */
 .auth-divider {
     position: relative;
     text-align: center;
-    margin: 20px 0;
+    margin: 18px 0;
 }
 
 .auth-divider::before {
@@ -1077,56 +1260,75 @@ button[style*="position: fixed"]:not(.right-button-group button) {
     top: 50%;
     left: 0;
     right: 0;
-    height: 1px;
-    background: #e1e1e1;
+    height: 2px;
+    background: var(--login-ink);
+    opacity: .18;
 }
 
 .auth-divider span {
-    background: rgba(255, 255, 255, 0.95);
-    padding: 0 16px;
-    color: #666;
-    font-size: 14px;
+    background: #fff;
+    padding: 0 14px;
+    color: #444;
+    font-size: 13px;
+    font-weight: 600;
     position: relative;
 }
 
 /* 게스트 로그인 버튼 */
 .guest-login-btn {
     width: 100%;
-    padding: 14px;
-    background: rgba(102, 126, 234, 0.1);
-    color: #667eea;
-    border: 2px solid #667eea;
-    border-radius: 12px;
-    font-size: 16px;
-    font-weight: 500;
+    padding: 13px;
+    background: #fff;
+    color: var(--login-ink);
+    border: 3px solid var(--login-ink);
+    border-radius: 11px;
+    font-family: 'Paperlogy', sans-serif;
+    font-size: 15px;
+    font-weight: 800;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
+    box-shadow: 5px 5px 0 var(--login-ink);
 }
 
 .guest-login-btn:hover {
-    background: #667eea;
-    color: white;
+    background: var(--login-paper);
+    transform: translate(3px, 3px);
+    box-shadow: 2px 2px 0 var(--login-ink);
+}
+
+.guest-login-btn:active {
+    transform: translate(5px, 5px);
+    box-shadow: 0 0 0 var(--login-ink);
 }
 
 .guest-icon {
-    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.guest-icon svg {
+    width: 20px;
+    height: 20px;
+    display: block;
 }
 
 /* 로그인 푸터 */
 .login-footer {
     text-align: center;
-    margin-top: 30px;
-    padding-top: 20px;
-    border-top: 1px solid #e1e1e1;
+    margin-top: 26px;
+    padding-top: 18px;
+    border-top: 2px dashed rgba(17, 17, 17, .2);
 }
 
 .login-footer p {
-    color: #666;
+    color: #555;
     font-size: 12px;
+    font-weight: 500;
     margin: 0;
 }
 
@@ -1135,16 +1337,17 @@ button[style*="position: fixed"]:not(.right-button-group button) {
     position: fixed;
     top: 20px;
     right: 20px;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
+    background: #fff;
+    border: 2.5px solid var(--login-ink);
     border-radius: 12px;
-    padding: 8px 16px;
+    padding: 7px 12px 7px 10px;
     display: flex;
     align-items: center;
     gap: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 4px 4px 0 var(--login-ink);
     z-index: 9999;
     animation: slideDown 0.3s ease;
+    font-family: 'Paperlogy', 'Pretendard', system-ui, sans-serif;
 }
 
 .user-info {
@@ -1154,20 +1357,21 @@ button[style*="position: fixed"]:not(.right-button-group button) {
 }
 
 .user-avatar {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: var(--login-yellow);
+    border: 2px solid var(--login-ink);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: 15px;
 }
 
 #userDisplayName {
     font-size: 14px;
-    font-weight: 500;
-    color: #333;
+    font-weight: 700;
+    color: var(--login-ink);
     max-width: 120px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1175,19 +1379,22 @@ button[style*="position: fixed"]:not(.right-button-group button) {
 }
 
 .logout-btn {
-    background: #ff4757;
-    color: white;
-    border: none;
-    border-radius: 8px;
+    background: var(--login-coral);
+    color: var(--login-ink);
+    border: 2.5px solid var(--login-ink);
+    border-radius: 9px;
     padding: 6px 12px;
+    font-family: 'Paperlogy', sans-serif;
     font-size: 12px;
+    font-weight: 800;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    box-shadow: 3px 3px 0 var(--login-ink);
 }
 
 .logout-btn:hover {
-    background: #ff3838;
-    transform: translateY(-1px);
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0 var(--login-ink);
 }
 
 /* 오류 메시지 */
@@ -1196,12 +1403,15 @@ button[style*="position: fixed"]:not(.right-button-group button) {
     top: 20px;
     left: 50%;
     transform: translateX(-50%);
-    background: #ff4757;
-    color: white;
+    background: var(--login-coral);
+    color: var(--login-ink);
+    border: 2.5px solid var(--login-ink);
     padding: 12px 20px;
-    border-radius: 8px;
+    border-radius: 10px;
+    font-family: 'Paperlogy', 'Pretendard', system-ui, sans-serif;
     font-size: 14px;
-    box-shadow: 0 4px 12px rgba(255, 71, 87, 0.3);
+    font-weight: 700;
+    box-shadow: 4px 4px 0 var(--login-ink);
     z-index: 10001;
     animation: slideDown 0.3s ease;
 }
@@ -1493,9 +1703,90 @@ button[style*="position: fixed"]:not(.right-button-group button) {
 .editor .folder-buttons,
 .editor .folder-tree {
     background: #ffffff !important;
-    border-radius: 8px;
-    padding: 8px;
-    margin: 8px 0;
+    border: 2px solid #111111;
+    border-radius: 11px;
+    padding: 5px 6px;
+    margin: 0;
+    box-shadow: none;
+}
+
+/* ===== 에디터 폴더 영역: 한 줄 레이아웃 ===== */
+#editor .folder-input-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: nowrap;
+}
+
+#editor .folder-path {
+    margin: 0;
+    flex-shrink: 0;
+    white-space: nowrap;
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+#editor .folder-buttons {
+    flex: 1;
+    min-width: 0;
+    flex-direction: row !important;
+    align-items: center;
+    gap: 6px;
+    max-height: none !important;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+#editor .folder-tree-toggle {
+    width: auto;
+    margin: 0;
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+#editor .folder-tree-view {
+    flex-direction: row !important;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+    max-height: none !important;
+    overflow: visible;
+}
+
+#editor .folder-tree-view.collapsed {
+    max-height: none !important;
+}
+
+/* 폴더 행을 알약형 칩으로 */
+#editor .folder-row {
+    width: auto;
+    min-height: 0;
+    padding: 5px 10px;
+    gap: 6px;
+    flex-shrink: 0;
+    border-radius: 999px;
+    background: #f3f4f8;
+    border: 1.5px solid #e2e4ec;
+    justify-content: flex-start;
+}
+
+#editor .folder-row.selected,
+.editor .folder-row.selected {
+    background: rgba(255, 210, 63, 0.45);
+    border: 1.5px solid #111111;
+    border-left: 1.5px solid #111111;
+}
+
+#editor .folder-row:hover,
+.editor .folder-row:hover {
+    background: rgba(255, 210, 63, 0.28);
+}
+
+#editor .folder-add-btn {
+    flex-shrink: 0;
 }
 
 /* 폴더 트리 토글 버튼 */
@@ -1517,14 +1808,16 @@ button[style*="position: fixed"]:not(.right-button-group button) {
 /* 에디터 내 폴더 토글 버튼 - 흰색 배경에 맞게 */
 #editor .folder-tree-toggle,
 .editor .folder-tree-toggle {
-    background: rgba(102, 126, 234, 0.15);
-    color: #333333;
-    border: 1px solid rgba(102, 126, 234, 0.3);
+    background: #fff;
+    color: #111;
+    border: 1.5px solid #111;
+    font-weight: 700;
+    border-radius: 999px;
 }
 
 #editor .folder-tree-toggle:hover,
 .editor .folder-tree-toggle:hover {
-    background: rgba(102, 126, 234, 0.25);
+    background: var(--login-yellow, #FFD23F);
 }
 
 .folder-tree-toggle:hover {
@@ -1581,15 +1874,17 @@ button[style*="position: fixed"]:not(.right-button-group button) {
     border-left: 3px solid #667eea;
 }
 
-/* 에디터 내 폴더 행 - 선택 시 더 진한 배경 */
+/* 에디터 내 폴더 행 (알약형 칩) - 선택/호버 hub 노랑 */
 #editor .folder-row.selected,
 .editor .folder-row.selected {
-    background: rgba(102, 126, 234, 0.25);
+    background: rgba(255, 210, 63, 0.45);
+    border: 1.5px solid #111111;
+    border-left: 1.5px solid #111111;
 }
 
 #editor .folder-row:hover,
 .editor .folder-row:hover {
-    background: rgba(102, 126, 234, 0.15);
+    background: rgba(255, 210, 63, 0.28);
 }
 
 /* 폴더 정보 (아이콘 + 이름) */

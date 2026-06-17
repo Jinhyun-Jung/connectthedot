@@ -139,10 +139,9 @@ function openEditor(node) {
         if (textColorIndicator) {
             textColorIndicator.style.backgroundColor = node.textColor;
         }
-        // 색상 밝기에 따라 버튼 색상 조정
+        // 'A' 글자에 선택한 색 적용
         if (textColorBtn) {
-            const brightness = getBrightness(node.textColor);
-            textColorBtn.style.color = brightness < 128 ? 'white' : 'black';
+            textColorBtn.style.color = node.textColor;
         }
     } else {
         contentInput.style.color = '#000000';
@@ -153,7 +152,7 @@ function openEditor(node) {
             textColorIndicator.style.backgroundColor = '#000000';
         }
         if (textColorBtn) {
-            textColorBtn.style.color = 'white';
+            textColorBtn.style.color = '#000000';
         }
     }
     
@@ -508,7 +507,11 @@ function openEditorForNewNode(tempNodeData) {
     if (textColorIndicator) {
         textColorIndicator.style.backgroundColor = '#000000';
     }
-    
+    const textColorBtnReset = document.getElementById('textColorBtn');
+    if (textColorBtnReset) {
+        textColorBtnReset.style.color = '#000000';
+    }
+
     // 기본 배경 색상 설정
     contentInput.style.backgroundColor = '#FFFFFF';
     contentInput.style.setProperty('background-color', '#FFFFFF', 'important');

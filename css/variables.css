@@ -90,8 +90,8 @@
     --twinkle-duration: 3s;
     
     /* Layout Dimensions */
-    --panel-width: 280px;
-    --calendar-width: 320px;
+    --panel-width: 400px;
+    --calendar-width: 400px;
     --canvas-size: 100000px;
     
     /* Component Sizes */

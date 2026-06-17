@@ -59,12 +59,22 @@ function buildFolderTree(obj, parentPath, selectedPath, depth) {
     let html = '';
     const keys = Object.keys(obj).sort((a, b) => a.localeCompare(b, 'ko'));
 
+    // 캔버스 우선: 폴더 노드 제목을 표시 이름으로 사용 (경로 끝 이름과 다를 수 있음)
+    const _nodes = window.nodes || nodes || [];
+    const _titleByPath = {};
+    _nodes.forEach(n => {
+        if (n && n.isFolder && n.folderPath) {
+            _titleByPath[n.folderPath] = (n.title && n.title.trim()) || n.folderPath.split('/').pop();
+        }
+    });
+
     keys.forEach(key => {
         const currentPath = parentPath === '/' ? '/' + key : parentPath + '/' + key;
         const folderColor = getFolderColor(currentPath);
         const isSelected = selectedPath === currentPath;
         const hasChildren = Object.keys(obj[key]).length > 0;
         const indent = depth * 20;
+        const displayName = _titleByPath[currentPath] || key;
 
         html += `
             <div class="folder-row ${isSelected ? 'selected' : ''}"
@@ -73,7 +83,7 @@ function buildFolderTree(obj, parentPath, selectedPath, depth) {
                  style="padding-left: ${indent}px;">
                 <div class="folder-info">
                     <span class="folder-dot" style="background-color: ${folderColor};"></span>
-                    <span class="folder-name">${key}</span>
+                    <span class="folder-name">${displayName}</span>
                 </div>
                 <button class="folder-add-btn" data-parent="${currentPath}" title="하위 폴더 추가">+</button>
             </div>

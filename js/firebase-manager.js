@@ -105,6 +105,7 @@ const FirebaseManager = {
                 isFolder: !!node.isFolder,
                 isSpreadsheet: !!node.isSpreadsheet,
                 date: node.date || null,
+                checked: !!node.checked,
                 vx: node.vx || 0,
                 vy: node.vy || 0,
                 mass: node.mass || 1,

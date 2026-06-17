@@ -432,20 +432,45 @@ function createNodeElement(node) {
         // 폴더 노드인 경우 더 많은 메뉴 추가
         if (node.isFolder) {
             menu.innerHTML = `
-                <button class="link-folder-btn">🔗 연결</button>
-                <button class="add-subnode-btn">📝 하위 노드 추가</button>
+                <button class="link-folder-btn"><span class="ctx-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg></span>연결</button>
+                <button class="add-subnode-btn"><span class="ctx-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg></span>하위 노드 추가</button>
                 <div class="context-menu-divider"></div>
-                <button class="change-text-color-btn">🎨 텍스트 색상</button>
-                <button class="change-border-color-btn">🖌️ 테두리 색상</button>
+                <button class="change-text-color-btn"><span class="ctx-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20l7-16 7 16"/><path d="M8 14h8"/></svg></span>텍스트 색상</button>
+                <button class="change-border-color-btn"><span class="ctx-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/></svg></span>테두리 색상</button>
                 <div class="context-menu-divider"></div>
-                <button class="rename-btn">✏️ 이름 변경</button>
-                <button class="delete-btn">🗑️ 삭제</button>
+                <button class="rename-btn"><span class="ctx-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>이름 변경</button>
+                <button class="delete-btn"><span class="ctx-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></span>삭제</button>
             `;
         } else {
             menu.innerHTML = `
-                <button class="link-folder-btn">🔗 연결</button>
-                <button class="delete-btn">🗑️ 삭제</button>
+                <button class="link-folder-btn"><span class="ctx-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg></span>연결</button>
+                <button class="check-node-btn"><span class="ctx-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>완료(체크)</button>
+                <button class="delete-btn"><span class="ctx-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></span>삭제</button>
             `;
+        }
+
+        // 완료(체크) 버튼 - 폴더뷰 체크박스와 동일 효과 (사라지는 애니메이션 후 숨김)
+        const checkNodeBtn = menu.querySelector('.check-node-btn');
+        if (checkNodeBtn) {
+            checkNodeBtn.addEventListener('click', async () => {
+                menu.remove();
+                node.checked = true;
+                // 아카이브 안의 '동일 폴더 경로'로 이동
+                const _norm = (typeof normalizeFolderPath === 'function') ? normalizeFolderPath : (p) => p || '/';
+                const _cur = _norm(node.folder);
+                node.folder = (_cur === '/') ? '/아카이브' : '/아카이브' + _cur;
+                if (typeof vanishNodeOnCanvas === 'function') {
+                    vanishNodeOnCanvas(node.id, () => { if (typeof render === 'function') render(); });
+                } else if (typeof render === 'function') {
+                    render();
+                }
+                if (typeof renderFolderTree === 'function') renderFolderTree();
+                try {
+                    if (typeof FirebaseManager !== 'undefined' && FirebaseManager.saveNode) {
+                        await FirebaseManager.saveNode(node);
+                    }
+                } catch (err) { console.error('완료 저장 실패:', err); }
+            });
         }
 
         // 연결 버튼 이벤트 (폴더/일반 노드 모두)
@@ -1490,6 +1515,9 @@ function drawLinks() {
 
         if (!source || !target) return;
 
+        // 완료(체크)·아카이브되어 숨긴 노드와 연결된 선은 그리지 않음
+        if (source.checked || target.checked) return;
+
         const dx = target.x - source.x;
         const dy = target.y - source.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
@@ -1686,6 +1714,25 @@ function stopFloating() {
 // render 함수
 let renderScheduled = false;
 
+// 캔버스 노드를 사라지는 애니메이션 후 콜백(보통 render로 제거) 실행
+function vanishNodeOnCanvas(nodeId, done) {
+    let safeId = '';
+    try { safeId = (window.CSS && CSS.escape) ? CSS.escape(String(nodeId)) : String(nodeId); }
+    catch (e) { safeId = String(nodeId); }
+    const el = document.querySelector(`.node[data-id="${safeId}"]`);
+    if (!el) { if (typeof done === 'function') done(); return; }
+    el.classList.add('node-vanish');
+    let finished = false;
+    const finish = () => {
+        if (finished) return;
+        finished = true;
+        if (typeof done === 'function') done();
+    };
+    el.addEventListener('animationend', finish, { once: true });
+    // 비활성 탭 등에서 animationend 미발생 대비 백업 타이머
+    setTimeout(finish, 420);
+}
+
 function render() {
     if (renderScheduled) return;
     
@@ -1742,7 +1789,16 @@ function render() {
             
             const nodeId = node.id.toString();
             const existingElement = existingNodes.get(nodeId);
-            
+
+            // 완료(체크)·아카이브된 노드는 캔버스에 표시하지 않음 (폴더 포함)
+            if (node.checked) {
+                if (existingElement) {
+                    existingElement.remove();
+                    existingNodes.delete(nodeId);
+                }
+                return;
+            }
+
             if (existingElement) {
                 // 기존 노드 업데이트 (단, 드래그 중이 아닐 때만)
                 if (!node.isDragging) {

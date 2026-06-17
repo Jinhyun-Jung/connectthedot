@@ -239,7 +239,25 @@ function initFormattingTools() {
         
         // 현재 색상 설정
         customColorPicker.value = mode === 'text' ? currentTextColor : currentBgColor;
-        
+
+        // 버튼 바로 아래에 팝업 위치시키기 (에디터 박스 안에 들어오도록)
+        const editorEl = document.getElementById('editor');
+        const anchor = mode === 'text' ? textColorBtn : bgColorBtn;
+        if (editorEl && anchor && colorPopup) {
+            const er = editorEl.getBoundingClientRect();
+            const ar = anchor.getBoundingClientRect();
+            const borderW = 3;
+            let left = (ar.left - er.left) - borderW + editorEl.scrollLeft;
+            let top = (ar.bottom - er.top) - borderW + editorEl.scrollTop + 8;
+            const popupW = 190;
+            const maxLeft = editorEl.clientWidth - popupW - 12;
+            if (left > maxLeft) left = Math.max(8, maxLeft);
+            if (left < 8) left = 8;
+            colorPopup.style.left = left + 'px';
+            colorPopup.style.top = top + 'px';
+            colorPopup.style.transform = 'none';
+        }
+
         // 팝업 표시
         colorPopup.style.display = 'block';
         
@@ -372,10 +390,10 @@ function initFormattingTools() {
     function updateTextColorIndicator(color) {
         if (textColorIndicator) {
             textColorIndicator.style.backgroundColor = color;
-            
-            // 색상이 어두운 경우 글자를 밝게
-            const brightness = getBrightness(color);
-            textColorBtn.style.color = brightness < 128 ? 'white' : 'black';
+        }
+        // 'A' 글자에 선택한 색 적용
+        if (textColorBtn) {
+            textColorBtn.style.color = color;
         }
     }
     
