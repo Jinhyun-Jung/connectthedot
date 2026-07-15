@@ -1,0 +1,39 @@
+/* 3D 캔버스 컨테이너 */
+#canvas3d {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    display: none;
+    background: #05060a;
+}
+#canvas3d canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+}
+
+/* 3D 활성화 시 2D 캔버스/배경 숨김 (UI 패널·버튼은 그대로 유지) */
+body.view-3d-active #canvas,
+body.view-3d-active #starBackground {
+    display: none !important;
+}
+
+/* 패널·에디터·버튼은 3D 위에 떠야 하므로 z-index 보장 */
+body.view-3d-active .right-button-group,
+body.view-3d-active .canvas-tab-container,
+body.view-3d-active #editor,
+body.view-3d-active .folder-container,
+body.view-3d-active .calendar-container,
+body.view-3d-active .folder-tree,
+body.view-3d-active #userStatusBar,
+body.view-3d-active .ai-modal {
+    z-index: 100;
+}
+
+/* 2D/3D 토글 버튼 (기존 우측 버튼 그룹 스타일을 따름) */
+#view3dToggle.active {
+    background: rgba(124, 108, 255, 0.28);
+    border-color: rgba(124, 108, 255, 0.7);
+    color: #cfc8ff;
+}
