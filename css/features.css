@@ -284,7 +284,7 @@
 .folder-item {
     display: flex;
     align-items: center;
-    padding: 3px 6px;
+    padding: 3px 6px 3px calc(6px + var(--tree-indent, 0px));
     margin: 0;
     border-radius: var(--radius-sm);
     cursor: pointer;
@@ -380,7 +380,7 @@
 .node-item {
     display: flex;
     align-items: center;
-    padding: 3px 6px 3px 22px;
+    padding: 3px 6px 3px calc(22px + var(--tree-indent, 0px));
     margin: 0;
     border-radius: var(--radius-sm);
     cursor: pointer;
@@ -396,6 +396,16 @@
 
 .node-item:hover {
     background-color: #f5f5f5;
+}
+
+.node-item.highlighted .node-name {
+    display: inline-block;
+    flex-grow: 0;
+    background: #ffeb3b;
+    color: #111111;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 3px;
 }
 
 .folder-icon,
@@ -670,6 +680,16 @@
 
 .context-menu .check-node-btn:hover {
     background: #ffd95e;
+}
+
+.folder-context-menu .highlight-menu-item {
+    background: #ffeb3b;
+    color: #111111;
+    font-weight: 700;
+}
+
+.folder-context-menu .highlight-menu-item:hover {
+    background: #ffe44d;
 }
 
 /* 삭제 - 코럴 강조 */

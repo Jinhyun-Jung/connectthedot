@@ -65,11 +65,11 @@
     }
 
     // ---- 라벨 스프라이트 ---------------------------------------------
-    function makeLabel(THREE, text, color) {
+    function makeLabel(THREE, text, color, highlighted) {
         var t = (text || '').trim();
         if (t.length > 14) t = t.slice(0, 14) + '…';
         if (!t) t = '·';
-        var pad = 8, fs = 48;
+        var pad = highlighted ? 16 : 8, fs = 48;
         var cv = document.createElement('canvas');
         var ctx = cv.getContext('2d');
         ctx.font = '500 ' + fs + 'px "Noto Sans KR", sans-serif';
@@ -79,9 +79,17 @@
         ctx.font = '500 ' + fs + 'px "Noto Sans KR", sans-serif';
         ctx.textBaseline = 'middle';
         ctx.textAlign = 'center';
-        ctx.shadowColor = 'rgba(0,0,0,0.85)';
-        ctx.shadowBlur = 8;
-        ctx.fillStyle = '#ffffff';
+        if (highlighted) {
+            ctx.fillStyle = '#ffeb3b';
+            ctx.fillRect(0, 0, w, h);
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#111111';
+        } else {
+            ctx.shadowColor = 'rgba(0,0,0,0.85)';
+            ctx.shadowBlur = 8;
+            ctx.fillStyle = '#ffffff';
+        }
         ctx.fillText(t, w / 2, h / 2);
         var tex = new THREE.CanvasTexture(cv);
         tex.minFilter = THREE.LinearFilter;
@@ -375,23 +383,24 @@
                     new THREE.SphereGeometry(r * 1.8, 18, 18),
                     new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.18, depthWrite: false })
                 );
-                var label = makeLabel(THREE, node.title, col);
+                var label = makeLabel(THREE, node.title, col, !!node.highlighted);
                 sphere.userData.nodeId = id;
                 this.nodeGroup.add(sphere);
                 this.nodeGroup.add(halo);
                 this.nodeGroup.add(label);
-                rec = this.meshById[id] = { sphere: sphere, halo: halo, label: label, node: node, title: node.title };
+                rec = this.meshById[id] = { sphere: sphere, halo: halo, label: label, node: node, title: node.title, highlighted: !!node.highlighted };
             } else {
                 rec.node = node;
                 rec.sphere.material.color.copy(col);
                 rec.halo.material.color.copy(col);
-                if (rec.title !== node.title) { // 제목 바뀌면 라벨 새로
+                if (rec.title !== node.title || rec.highlighted !== !!node.highlighted) { // 제목/형광펜이 바뀌면 라벨 새로
                     this.nodeGroup.remove(rec.label);
                     rec.label.material.map.dispose();
                     rec.label.material.dispose();
-                    rec.label = makeLabel(THREE, node.title, col);
+                    rec.label = makeLabel(THREE, node.title, col, !!node.highlighted);
                     this.nodeGroup.add(rec.label);
                     rec.title = node.title;
+                    rec.highlighted = !!node.highlighted;
                 }
             }
         }
