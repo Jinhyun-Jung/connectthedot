@@ -588,10 +588,19 @@
         var btn = document.getElementById('view3dToggle');
         if (btn) btn.addEventListener('click', function () { ThreeCanvas3D.toggle(); });
         // 기본값: 3D (사용자가 2D로 끄면 기억)
+        // Return every browser to 2D once. Later manual 3D choices are kept.
+        var defaultVersion = '2d-default-2026-07-15';
+        if (localStorage.getItem('view3dDefaultVersion') !== defaultVersion) {
+            localStorage.setItem('view3d', '0');
+            localStorage.setItem('view3dDefaultVersion', defaultVersion);
+        }
+
         var pref = localStorage.getItem('view3d');
-        if (pref === null || pref === '1') {
+        if (pref === '1') {
             // 노드 로드 시간을 약간 준 뒤 진입
             setTimeout(function () { ThreeCanvas3D.show(); }, 600);
+        } else {
+            updateToggleLabel(false);
         }
     }
 
