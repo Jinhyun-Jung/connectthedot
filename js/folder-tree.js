@@ -811,49 +811,29 @@ async function createSubFolderInPath(parentPath, folderName) {
 // 특정 폴더에 노드 추가
 async function createNodeInFolder(folderPath) {
     try {
+        const normalizedPath = normalizeFolderPath(folderPath);
         const now = new Date();
-        const newNode = {
-            id: Date.now(),
-            title: '새 노드',
+        const tempNodeData = {
             content: '',
-            date: now.toISOString().split('T')[0],
             x: Math.random() * 400 + 100,
             y: Math.random() * 300 + 100,
-            baseX: 0,
-            baseY: 0,
-            phase: Math.random() * Math.PI * 2,
-            emotion: '#F59E0B',
-            folder: folderPath,
-            vx: 0,
-            vy: 0,
-            mass: 1,
-            createdAt: now.toISOString(),
-            updatedAt: now.toISOString()
+            folder: normalizedPath,
+            emotion: 'default',
+            date: now.toISOString().split('T')[0],
+            isNew: true
         };
 
-        newNode.baseX = newNode.x;
-        newNode.baseY = newNode.y;
+        tempNodeData.baseX = tempNodeData.x;
+        tempNodeData.baseY = tempNodeData.y;
 
-        // Firebase에 저장
-        await FirebaseManager.saveNode(newNode);
-
-        // UI 업데이트
-        renderFolderTree();
-        if (typeof render === 'function') render();
-
-        // 새 노드 에디터 열기
-        if (typeof openEditor === 'function') {
-            // 약간의 지연 후 에디터 열기 (노드가 렌더링된 후)
-            setTimeout(() => {
-                const nodesToSearch = window.nodes || [];
-                const createdNode = nodesToSearch.find(n => n.id === newNode.id);
-                if (createdNode) {
-                    openEditor(createdNode);
-                }
-            }, 100);
+        if (typeof openEditorForNewNode !== 'function') {
+            throw new Error('새 노드 편집기를 열 수 없습니다.');
         }
 
-        console.log('노드 생성 완료:', newNode.id, 'in folder:', folderPath);
+        // Use the same creation flow as the global add button. This keeps the
+        // selected folder and default typography intact until the user saves.
+        openEditorForNewNode(tempNodeData);
+        console.log('폴더에서 새 노드 편집 시작:', normalizedPath);
     } catch (error) {
         console.error('노드 생성 실패:', error);
         alert('노드 생성에 실패했습니다.');

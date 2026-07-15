@@ -254,7 +254,7 @@ function getFolderColor(folder) {
 
 // 제목 길이에 따른 폰트 크기 계산 함수
 function calculateTitleFontSize(title, isFolder = false) {
-    if (!title) return isFolder ? '14px' : '16px';
+    if (!title) return '14px';
     
     const length = title.length;
     let fontSize;
@@ -266,10 +266,9 @@ function calculateTitleFontSize(title, isFolder = false) {
         else if (length <= 15) fontSize = 12;
         else fontSize = 10;
     } else {
-        if (length <= 5) fontSize = 22;
-        else if (length <= 10) fontSize = 18;
-        else if (length <= 15) fontSize = 16;
-        else if (length <= 25) fontSize = 14;
+        // Keep regular node titles consistent with the 14px component default.
+        // Only shrink long titles instead of enlarging short titles.
+        if (length <= 25) fontSize = 14;
         else if (length <= 35) fontSize = 12;
         else if (length <= 50) fontSize = 11;
         else if (length <= 70) fontSize = 10;

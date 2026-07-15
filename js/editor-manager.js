@@ -1,5 +1,5 @@
 // 폴더 노드에서 하위 노드 생성 함수
-async function createNodeInFolder(folderNode) {
+async function createNodeNearFolderNode(folderNode) {
     console.log('폴더에서 새 노드 생성:', folderNode);
 
     // 폴더 노드 근처에 새 노드 생성
