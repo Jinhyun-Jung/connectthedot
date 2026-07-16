@@ -14,10 +14,20 @@ async function createNodeNearFolderNode(folderNode) {
     if (newNode) {
         // 새 노드를 폴더의 하위로 설정
         newNode.folder = folderNode.folderPath || folderNode.folder || '/';
+
+        // createNew() may have saved the node before the folder was assigned.
+        if (window.FirebaseManager?.saveNode) {
+            await window.FirebaseManager.saveNode(newNode);
+        }
         
         // 에디터 열기
         openEditor(newNode);
     }
+}
+
+function normalizeEditorFolderPath(path) {
+    if (!path || path === '/') return '/';
+    return `/${String(path).split('/').filter(Boolean).join('/')}`;
 }
 
 // 노드 편집 관련 함수
@@ -223,13 +233,15 @@ function openEditor(node) {
     editor.style.overflowY = 'auto';
 
     state.selectedNode = node;
+    const editorFolderPath = normalizeEditorFolderPath(node.folder || '/');
+    state.selectedFolder = editorFolderPath;
 
     // 현재 폴더 경로 업데이트 및 버튼 선택 상태 초기화
-    updateFolderPathButtons(node.folder || '/');
+    updateFolderPathButtons(editorFolderPath);
 
     // 폴더 행 클릭 상태 업데이트 (.folder-row 사용)
     document.querySelectorAll('.folder-row').forEach(row => {
-        row.classList.toggle('selected', row.dataset.path === (node.folder || '/'));
+        row.classList.toggle('selected', row.dataset.path === editorFolderPath);
     });
 
     // 색상 버튼 상태 초기화
@@ -289,7 +301,11 @@ async function saveNode() {
         // 현재 선택된 폴더 경로 가져오기 (.folder-row.selected 사용)
         const selectedFolderRow = document.querySelector('#editor .folder-row.selected') ||
                                    document.querySelector('.folder-buttons .folder-row.selected');
-        const folderPath = selectedFolderRow ? selectedFolderRow.dataset.path : '/';
+        const folderPath = normalizeEditorFolderPath(
+            selectedFolderRow?.dataset.path || state.tempNodeData.folder || state.selectedFolder || '/'
+        );
+        state.tempNodeData.folder = folderPath;
+        state.selectedFolder = folderPath;
 
         // 새 노드 생성
         const now = new Date();
@@ -404,7 +420,10 @@ async function saveNode() {
         // 현재 선택된 폴더 경로 가져오기 (.folder-row.selected 사용)
         const selectedFolderRow = document.querySelector('#editor .folder-row.selected') ||
                                    document.querySelector('.folder-buttons .folder-row.selected');
-        const folderPath = selectedFolderRow ? selectedFolderRow.dataset.path : '/';
+        const folderPath = normalizeEditorFolderPath(
+            selectedFolderRow?.dataset.path || state.selectedNode.folder || state.selectedFolder || '/'
+        );
+        state.selectedFolder = folderPath;
 
         console.log('폴더 경로 저장:', {
             selectedFolderRow: selectedFolderRow,
@@ -536,15 +555,17 @@ function openEditorForNewNode(tempNodeData) {
     editor.style.overflowY = 'auto';
 
     // 임시 노드 데이터를 state에 저장
+    tempNodeData.folder = normalizeEditorFolderPath(tempNodeData.folder || '/');
     state.tempNodeData = tempNodeData;
     state.selectedNode = null; // 기존 노드가 아닌 새 노드임을 표시
+    state.selectedFolder = tempNodeData.folder;
 
     // 현재 폴더 경로 업데이트 및 버튼 선택 상태 초기화
-    updateFolderPathButtons(tempNodeData.folder || '/');
+    updateFolderPathButtons(tempNodeData.folder);
 
     // 폴더 행 클릭 상태 업데이트 (.folder-row 사용)
     document.querySelectorAll('.folder-row').forEach(row => {
-        row.classList.toggle('selected', row.dataset.path === (tempNodeData.folder || '/'));
+        row.classList.toggle('selected', row.dataset.path === tempNodeData.folder);
     });
 
     // 색상 버튼 상태 초기화
